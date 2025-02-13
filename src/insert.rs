@@ -8,17 +8,16 @@ use sqlx::{Database, Postgres};
 mod conflict;
 pub use conflict::*;
 pub mod many;
-pub struct SimpleInsertQueryBuilder<'args> {
+pub struct InsertQueryBuilder<'args> {
     columns: Vec<DynColumn>,
     insert: Vec<Expr>,
     sql: Option<String>,
     returning: Returning<DynColumn>,
     table: &'static str,
     on_conflict: Option<OnConflict<DynColumn>>,
-
     arguments: Option<<Postgres as Database>::Arguments<'args>>,
 }
-impl<'args> HasArguments<'args> for SimpleInsertQueryBuilder<'args> {
+impl<'args> HasArguments<'args> for InsertQueryBuilder<'args> {
     fn take_arguments_or_error(&mut self) -> <Postgres as Database>::Arguments<'args> {
         self.arguments.take().expect("Arguments already taken")
     }
@@ -28,7 +27,7 @@ impl<'args> HasArguments<'args> for SimpleInsertQueryBuilder<'args> {
     }
 }
 
-impl Debug for SimpleInsertQueryBuilder<'_> {
+impl Debug for InsertQueryBuilder<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("SimpleInsertQueryBuilder")
             .field("columns_to_insert", &self.insert)
@@ -38,7 +37,7 @@ impl Debug for SimpleInsertQueryBuilder<'_> {
             .finish()
     }
 }
-impl<'args> SimpleInsertQueryBuilder<'args> {
+impl<'args> InsertQueryBuilder<'args> {
     pub fn new(table: &'static str) -> Self {
         Self {
             table,
@@ -116,8 +115,8 @@ impl<'args> SimpleInsertQueryBuilder<'args> {
         self.sql = Some(sql);
     }
 }
-impl<'args> QueryTool<'args> for SimpleInsertQueryBuilder<'args> {}
-impl FormatSqlQuery for SimpleInsertQueryBuilder<'_> {
+impl<'args> QueryTool<'args> for InsertQueryBuilder<'args> {}
+impl FormatSqlQuery for InsertQueryBuilder<'_> {
     fn format_sql_query(&mut self) -> &str {
         if self.sql.is_none() {
             self.gen_sql();
@@ -144,7 +143,7 @@ mod tests {
 
     #[test]
     pub fn test_no_return() {
-        let mut builder = super::SimpleInsertQueryBuilder::new(TestTable::table_name());
+        let mut builder = super::InsertQueryBuilder::new(TestTable::table_name());
         builder
             .insert(TestTableColumn::LastName, "Doe".value())
             .insert(TestTableColumn::FirstName, "John".value())
@@ -163,7 +162,7 @@ mod tests {
     }
     #[test]
     pub fn insert_with_expr() {
-        let mut builder = super::SimpleInsertQueryBuilder::new(TestTable::table_name());
+        let mut builder = super::InsertQueryBuilder::new(TestTable::table_name());
         builder
             .insert(TestTableColumn::LastName, "Doe".value())
             .insert(TestTableColumn::FirstName, "John".value())
@@ -178,7 +177,7 @@ mod tests {
     }
     #[test]
     pub fn insert_sub_query() {
-        let mut builder = super::SimpleInsertQueryBuilder::new(TestTable::table_name());
+        let mut builder = super::InsertQueryBuilder::new(TestTable::table_name());
         builder
             .insert(TestTableColumn::LastName, "Doe".value())
             .insert(TestTableColumn::FirstName, "John".value())

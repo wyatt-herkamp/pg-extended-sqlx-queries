@@ -8,6 +8,17 @@ mod update;
 pub use expr::*;
 pub use insert::*;
 pub use pagination::*;
+/// Derive macro for generating table types
+/// ```rust,no_compile
+/// use pg_extended_sqlx_queries_macros::TableType;
+/// #[derive(TableType)]
+/// #[table(name = "users")]
+/// pub struct User {
+///     pub id: i32,
+///     pub name: String,
+/// }
+/// ```
+pub use pg_extended_sqlx_queries_macros::TableType;
 pub use select::*;
 pub use table_layout::*;
 pub use traits::*;
