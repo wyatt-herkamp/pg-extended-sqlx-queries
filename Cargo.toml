@@ -1,0 +1,30 @@
+[workspace]
+members = ["macros"]
+resolver = "2"
+[workspace.package]
+edition = "2021"
+license = "MIT OR Apache-2.0"
+version = "0.1.0"
+authors = ["Wyatt Jacob Herkamp <wherkamp@gmail.com>"]
+repository = "https://github.com/wyatt-herkamp/pg-extended-sqlx-queries"
+[package]
+name = "pg-extended-sqlx-queries"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+
+[dependencies]
+pg-extended-sqlx-queries-macros = { path = "macros" }
+sqlx = { version = "0.8", features = ["postgres"] }
+tracing = "0.1"
+ahash = "0.8"
+sqlformat = { version = "0.3", optional = true }
+
+[dev-dependencies]
+chrono = { version = "0.4", features = ["serde"] }
+sqlformat = "0.3"
+
+[features]
+default = ["format"]
+
+format = ["sqlformat"]
