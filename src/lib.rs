@@ -9,8 +9,8 @@ pub use expr::*;
 pub use insert::*;
 pub use pagination::*;
 /// Derive macro for generating table types
-/// ```rust,no_compile
-/// use pg_extended_sqlx_queries_macros::TableType;
+/// ```
+/// use pg_extended_sqlx_queries::prelude::*;
 /// #[derive(TableType)]
 /// #[table(name = "users")]
 /// pub struct User {

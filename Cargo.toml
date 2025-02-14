@@ -15,7 +15,7 @@ authors.workspace = true
 
 [dependencies]
 pg-extended-sqlx-queries-macros = { path = "macros" }
-sqlx = { version = "0.8", features = ["postgres"] }
+sqlx = { version = "0.8", features = ["postgres"], default-features = false }
 tracing = "0.1"
 ahash = "0.8"
 sqlformat = { version = "0.3", optional = true }
