@@ -1,6 +1,6 @@
 use sqlx::{postgres::PgTypeInfo, Encode, Postgres, Type};
 
-use super::ExprType;
+use super::{ExprType, WrapInFunction};
 
 pub trait DynEncodeType<'args> {
     fn value(self) -> DynEncode<'args>;
@@ -13,6 +13,7 @@ where
         DynEncode::new(self)
     }
 }
+impl<'args> WrapInFunction<'args> for DynEncode<'args> {}
 pub struct DynEncode<'args> {
     value: Box<dyn sqlx::Encode<'args, Postgres> + 'args>,
     type_info: PgTypeInfo,

@@ -146,6 +146,12 @@ pub trait WrapInFunction<'args>: ExprType<'args> + 'args {
     {
         self.wrap_in_function("ARRAY")
     }
+    fn any(self) -> ExprFunctionBuilder<'args>
+    where
+        Self: Sized,
+    {
+        self.wrap_in_function("ANY")
+    }
 }
 #[cfg(test)]
 mod tests {

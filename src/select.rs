@@ -169,7 +169,6 @@ impl<'args> FormatSqlQuery for SelectQueryBuilder<'args> {
 
         self.sql.as_ref().expect("SQL not set")
     }
-
 }
 impl<'args> QueryTool<'args> for SelectQueryBuilder<'args> {}
 impl<'args> HasArguments<'args> for SelectQueryBuilder<'args> {
@@ -197,7 +196,7 @@ mod tests {
     use crate::{
         testing::{AnotherTable, AnotherTableColumn, TestTable, TestTableColumn},
         Aliasable, DynEncodeType, ExprFunctionBuilder, ExprType, FormatSqlQuery, MultipleExprType,
-        PaginationSupportingTool, TableType, WhereableTool,
+        PaginationSupportingTool, TableType, WhereableTool, WrapInFunction,
     };
 
     use super::SelectQueryBuilder;
@@ -272,5 +271,20 @@ mod tests {
         let sql = sqlformat::format(sql, &QueryParams::None, &FormatOptions::default());
 
         println!("{}", sql);
+    }
+    #[test]
+    fn select_any() {
+        let mut select = SelectQueryBuilder::new(TestTable::table_name());
+        select.select(TestTableColumn::Id.alias("user_id"));
+
+        select.filter(
+            TestTableColumn::Phone.equals(vec!["555-555-5555", "555-555-7777"].value().any()),
+        );
+
+        let sql = select.format_sql_query();
+        assert_eq!(
+            sql,
+            "SELECT test_table.id AS user_id FROM test_table WHERE test_table.phone = ANY($1)"
+        );
     }
 }
