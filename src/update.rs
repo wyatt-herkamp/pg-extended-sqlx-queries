@@ -1,4 +1,5 @@
 use sqlx::{Database, Postgres};
+use tracing::{debug, instrument};
 
 use crate::{FormatWhere, SQLCondition};
 
@@ -35,6 +36,7 @@ impl<'args, C: ColumnType> FormatWhere for UpdateQueryBuilder<'_, 'args, C> {
     }
 }
 impl<'args, C: ColumnType> FormatSqlQuery for UpdateQueryBuilder<'_, 'args, C> {
+    #[instrument(skip(self), fields(table = %self.table, statement.type = "UPDATE"))]
     fn format_sql_query(&mut self) -> &str {
         let mut sql = format!("UPDATE {} SET ", self.table);
 
@@ -52,7 +54,7 @@ impl<'args, C: ColumnType> FormatSqlQuery for UpdateQueryBuilder<'_, 'args, C> {
             sql.push_str(" WHERE ");
             sql.push_str(&where_sql);
         }
-
+        debug!(?sql, "UpdateQueryBuilder::format_sql_query");
         self.sql = Some(sql);
 
         self.sql.as_ref().expect("SQL not set")

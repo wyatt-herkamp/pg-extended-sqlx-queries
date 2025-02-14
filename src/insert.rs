@@ -7,6 +7,7 @@ use crate::{
 use sqlx::{Database, Postgres};
 mod conflict;
 pub use conflict::*;
+use tracing::{debug, instrument};
 pub mod many;
 pub struct InsertQueryBuilder<'args> {
     columns: Vec<DynColumn>,
@@ -97,7 +98,11 @@ impl<'args> InsertQueryBuilder<'args> {
         self.returning = Returning::Columns(columns);
         self
     }
-    fn gen_sql(&mut self) {
+}
+impl<'args> QueryTool<'args> for InsertQueryBuilder<'args> {}
+impl FormatSqlQuery for InsertQueryBuilder<'_> {
+    #[instrument(skip(self), fields(table = %self.table, statement.type = "INSERT"))]
+    fn format_sql_query(&mut self) -> &str {
         let columns = super::concat_columns_no_table_name(&self.columns);
         let values = self
             .insert
@@ -111,16 +116,8 @@ impl<'args> InsertQueryBuilder<'args> {
             on_conflict = self.on_conflict.format_sql(),
             returning = self.returning,
         );
-
+        debug!(?sql, "InsertQueryBuilder::gen_sql");
         self.sql = Some(sql);
-    }
-}
-impl<'args> QueryTool<'args> for InsertQueryBuilder<'args> {}
-impl FormatSqlQuery for InsertQueryBuilder<'_> {
-    fn format_sql_query(&mut self) -> &str {
-        if self.sql.is_none() {
-            self.gen_sql();
-        }
         self.sql.as_ref().expect("BUG: SQL not generated")
     }
 }

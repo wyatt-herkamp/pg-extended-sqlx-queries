@@ -11,6 +11,7 @@ mod join;
 pub use count::*;
 pub use exists::*;
 pub use join::*;
+use tracing::{debug, instrument};
 
 pub struct SelectQueryBuilder<'args> {
     table: &'static str,
@@ -118,6 +119,7 @@ impl<'args> SelectQueryBuilder<'args> {
     }
 }
 impl<'args> FormatSqlQuery for SelectQueryBuilder<'args> {
+    #[instrument(skip(self), fields(table = %self.table, statement.type = "SELECT"))]
     fn format_sql_query(&mut self) -> &str {
         let mut columns: Vec<_> = self
             .select
@@ -165,6 +167,7 @@ impl<'args> FormatSqlQuery for SelectQueryBuilder<'args> {
             sql.push_str(" OFFSET ");
             sql.push_str(&offset.to_string());
         }
+        debug!(?sql, "SelectQueryBuilder::format_sql_query");
         self.sql = Some(sql);
 
         self.sql.as_ref().expect("SQL not set")

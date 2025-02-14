@@ -6,6 +6,7 @@ use crate::{
 use sqlx::{Database, Postgres};
 mod row;
 pub use row::*;
+use tracing::{debug, instrument};
 
 use super::{OnConflict, Returning};
 
@@ -102,7 +103,11 @@ impl<'args, C: ColumnType> InsertManyBuilder<'args, C> {
         self.returning = Returning::Columns(columns);
         self
     }
-    fn gen_sql(&mut self) {
+}
+impl<'args, C> QueryTool<'args> for InsertManyBuilder<'args, C> where C: ColumnType {}
+impl<C: ColumnType> FormatSqlQuery for InsertManyBuilder<'_, C> {
+    #[instrument(skip(self), fields(table = %self.table, statement.type = "INSERT"))]
+    fn format_sql_query(&mut self) -> &str {
         let columns = concat_columns_no_table_name(&self.columns_to_insert);
         let placeholders = self
             .rows
@@ -116,16 +121,9 @@ impl<'args, C: ColumnType> InsertManyBuilder<'args, C> {
             on_conflict = self.on_conflict.format_sql(),
             returning = self.returning,
         );
+        debug!(?sql, "InsertManyBuilder::gen_sql");
 
         self.sql = Some(sql);
-    }
-}
-impl<'args, C> QueryTool<'args> for InsertManyBuilder<'args, C> where C: ColumnType {}
-impl<C: ColumnType> FormatSqlQuery for InsertManyBuilder<'_, C> {
-    fn format_sql_query(&mut self) -> &str {
-        if self.sql.is_none() {
-            self.gen_sql();
-        }
         self.sql.as_ref().expect("BUG: SQL not generated")
     }
 }

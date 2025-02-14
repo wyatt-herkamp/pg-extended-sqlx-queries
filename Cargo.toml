@@ -19,7 +19,6 @@ sqlx = { version = "0.8", features = ["postgres"], default-features = false }
 tracing = "0.1"
 ahash = "0.8"
 sqlformat = { version = "0.3", optional = true }
-
 [dev-dependencies]
 chrono = { version = "0.4", features = ["serde"] }
 sqlformat = "0.3"
