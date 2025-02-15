@@ -198,8 +198,8 @@ mod tests {
 
     use crate::{
         testing::{AnotherTable, AnotherTableColumn, TestTable, TestTableColumn},
-        Aliasable, DynEncodeType, ExprFunctionBuilder, ExprType, FormatSqlQuery, MultipleExprType,
-        PaginationSupportingTool, TableType, WhereableTool, WrapInFunction,
+        Aliasable, DynEncodeType, ExprFunctionBuilder, FilterExpr, FormatSqlQuery,
+        MultipleExprType, PaginationSupportingTool, TableType, WhereableTool, WrapInFunction,
     };
 
     use super::SelectQueryBuilder;

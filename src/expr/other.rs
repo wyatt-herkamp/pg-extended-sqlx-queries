@@ -1,7 +1,9 @@
 use std::borrow::Cow;
 
 use crate::FormatSql;
-
+/// SQL Basic Comparisons Types
+///
+/// This is used in the `WHERE` clause of a query
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum SQLComparison {
     /// Equals
@@ -16,13 +18,13 @@ pub enum SQLComparison {
     ///
     /// `!=`
     NotEquals,
-
+    /// Greater Than
     GreaterThan,
-
+    /// Less Than
     LessThan,
-
+    /// Greater Than or Equals
     GreaterThanOrEqualTo,
-
+    /// Less Than or Equals
     LessThanOrEqualTo,
 }
 impl FormatSql for SQLComparison {

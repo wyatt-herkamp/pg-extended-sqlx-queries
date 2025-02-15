@@ -134,7 +134,7 @@ mod tests {
 
     use crate::{
         testing::{AnotherTable, AnotherTableColumn, TestTable, TestTableColumn},
-        DynEncode, DynEncodeType, ExprFunctionBuilder, ExprType, ExpressionWhereable,
+        DynEncode, DynEncodeType, ExprFunctionBuilder, ExpressionWhereable, FilterExpr,
         FormatSqlQuery, SelectExprBuilder, TableType,
     };
 

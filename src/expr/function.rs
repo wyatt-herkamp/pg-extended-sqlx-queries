@@ -30,6 +30,23 @@ impl<'args> ExprFunctionBuilder<'args> {
     pub fn count() -> Self {
         Self::new("COUNT")
     }
+    /// Alias for `COUNT(*)`
+    ///
+    /// ```rust
+    ///  use pg_extended_sqlx_queries::prelude::*;
+    ///  use pg_extended_sqlx_queries::fake::FakeQuery;
+    ///
+    ///  let mut fake_query = FakeQuery::default();
+    ///  let expr = ExprFunctionBuilder::count_all();
+    ///  let other_way = ExprFunctionBuilder::count().add_param(All::new());
+    ///
+    ///  let expr = expr.process_unboxed(&mut fake_query);
+    ///  let other_way = other_way.process_unboxed(&mut fake_query);
+    ///
+    ///  let expr = expr.format_sql();
+    ///  let other_way = other_way.format_sql();
+    ///  assert_eq!(expr, other_way);
+    ///  ```
     pub fn count_all() -> Self {
         Self::new("COUNT").add_param(All::new())
     }
@@ -155,7 +172,7 @@ pub trait WrapInFunction<'args>: ExprType<'args> + 'args {
 }
 #[cfg(test)]
 mod tests {
-    use crate::{testing::TestParentQuery, Aliasable, ExprType, FormatSql, MultipleExprType};
+    use crate::{fake::FakeQuery, Aliasable, ExprType, FormatSql, MultipleExprType};
 
     use super::ExprFunctionBuilder;
 
@@ -166,7 +183,7 @@ mod tests {
             .alias("count_over");
 
         // Code for faking the query
-        let mut parent = TestParentQuery::default();
+        let mut parent = FakeQuery::default();
         let expr = expr.process_unboxed(&mut parent);
 
         assert_eq!(expr.format_sql(), "COUNT(*) OVER() AS count_over");

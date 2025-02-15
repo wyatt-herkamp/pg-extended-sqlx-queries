@@ -1,10 +1,14 @@
+mod delete;
 mod expr;
+#[doc(hidden)]
+pub mod fake;
 mod insert;
 mod pagination;
 mod select;
 mod table_layout;
 mod traits;
 mod update;
+pub use delete::*;
 pub use expr::*;
 pub use insert::*;
 pub use pagination::*;

@@ -2,9 +2,9 @@ use syn::{
     parse::{Parse, ParseStream},
     LitStr, Result,
 };
-mod keywords {
-    syn::custom_keyword!(name);
-}
+
+use crate::utils::keywords;
+
 pub struct TableAttr {
     pub name: LitStr,
 }

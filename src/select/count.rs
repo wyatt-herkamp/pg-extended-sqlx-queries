@@ -66,7 +66,7 @@ mod tests {
 
     use crate::{
         testing::{TestTable, TestTableColumn},
-        DynEncodeType, ExprType, FormatSqlQuery, SelectCount, TableType, WhereableTool,
+        DynEncodeType, FilterExpr, FormatSqlQuery, SelectCount, TableType, WhereableTool,
     };
 
     #[test]

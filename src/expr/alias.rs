@@ -57,4 +57,3 @@ pub trait Aliasable<'args>: ExprType<'args> {
         ExprAsType::new(self, alias)
     }
 }
-

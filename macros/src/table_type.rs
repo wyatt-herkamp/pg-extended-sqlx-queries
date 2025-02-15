@@ -26,7 +26,7 @@ pub fn expand(input: DeriveInput) -> Result<TokenStream> {
         syn::Fields::Named(fields_named) => fields_named
             .named
             .into_iter()
-            .map(|field| ColumnField::new(field, ident.clone()))
+            .filter_map(|field| ColumnField::new(field, ident.clone()).transpose())
             .collect::<Result<Vec<_>>>()?,
         _ => return Err(syn::Error::new_spanned(ident, "expected named fields")),
     };

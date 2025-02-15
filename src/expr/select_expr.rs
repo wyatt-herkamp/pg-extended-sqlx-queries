@@ -157,7 +157,8 @@ impl<'args> WrapInFunction<'args> for SelectExprBuilder<'args> {}
 #[cfg(test)]
 mod tests {
     use crate::{
-        testing::{TestParentQuery, TestTable, TestTableColumn},
+        fake::FakeQuery,
+        testing::{TestTable, TestTableColumn},
         Aliasable, ExprFunctionBuilder, ExprType, FormatSql, PaginationOwnedSupportingTool,
         TableType, WrapInFunction,
     };
@@ -174,7 +175,7 @@ mod tests {
             .alias("test_alias");
 
         // Code for faking the query
-        let mut parent = TestParentQuery::default();
+        let mut parent = FakeQuery::default();
         let expr = sub_select.process_unboxed(&mut parent);
 
         assert_eq!(

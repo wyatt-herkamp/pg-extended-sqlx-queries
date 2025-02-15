@@ -1,7 +1,8 @@
 use crate::{AndOr, FormatSql, SQLComparison};
 
 use super::{Expr, ExprType};
-
+mod expr;
+pub use expr::*;
 pub enum FilterConditionBuilder<'args> {
     CompareValue {
         left: Box<dyn ExprType<'args> + 'args>,
@@ -83,17 +84,22 @@ impl<'args> ExprType<'args> for FilterConditionBuilder<'args> {
 }
 #[derive(Debug)]
 pub enum SQLCondition {
+    /// Generic comparison between two values
     CompareValue {
         left: Expr,
         comparison: SQLComparison,
         right: Expr,
     },
-    Between {
-        start: Expr,
-        end: Expr,
-    },
+    /// Represents a Postgres `BETWEEN` condition
+    /// [Postgres Documentation](https://www.postgresql.org/docs/current/functions-comparison.html)
+    Between { start: Expr, end: Expr },
+    /// Represents a Postgres `IS NOT NULL` condition
     NotNull(Expr),
+
+    /// Represents a Postgres `IS NULL` condition
     Null(Expr),
+
+    /// Represents a Postgres AND or OR condition
     Then {
         left: Expr,
         and_or: AndOr,

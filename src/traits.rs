@@ -57,8 +57,6 @@ pub trait FormatSqlQuery {
         let sql = sqlformat::format(sql, &QueryParams::None, &FormatOptions::default());
         sql
     }
-
-
 }
 /// A base Query TOol type that can be used to build queries.
 ///
