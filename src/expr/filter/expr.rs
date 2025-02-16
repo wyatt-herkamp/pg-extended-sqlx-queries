@@ -59,6 +59,14 @@ pub trait FilterExpr<'args>: ExprType<'args> {
     {
         self.compare(SQLComparison::GreaterThanOrEqualTo, value)
     }
+
+    fn not_equals<E>(self, value: E) -> FilterConditionBuilder<'args>
+    where
+        Self: Sized + 'args,
+        E: ExprType<'args> + 'args,
+    {
+        self.compare(SQLComparison::NotEquals, value)
+    }
     fn between<L, R>(self, start: L, end: R) -> FilterConditionBuilder<'args>
     where
         Self: Sized + 'args,
