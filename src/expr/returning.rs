@@ -2,28 +2,13 @@ use std::fmt::Display;
 
 use crate::{concat_columns_no_table_name, ColumnType, DynColumn};
 
-#[derive(Debug, Clone)]
-pub enum Returning<C: ColumnType> {
+#[derive(Debug)]
+pub enum Returning {
     None,
     All,
-    Columns(Vec<C>),
+    Columns(Vec<DynColumn>),
 }
-impl<C> Returning<C>
-where
-    C: ColumnType + 'static,
-{
-    /// Converts the current type to a `Returning<DynColumn>`.
-    pub fn dyn_column(self) -> Returning<DynColumn> {
-        match self {
-            Self::None => Returning::None,
-            Self::All => Returning::All,
-            Self::Columns(columns) => {
-                Returning::Columns(columns.into_iter().map(|c| c.dyn_column()).collect())
-            }
-        }
-    }
-}
-impl<C: ColumnType> Display for Returning<C> {
+impl Display for Returning {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::None => write!(f, ""),
@@ -35,8 +20,23 @@ impl<C: ColumnType> Display for Returning<C> {
         }
     }
 }
-impl<C: ColumnType> Default for Returning<C> {
+impl Default for Returning {
     fn default() -> Self {
         Self::None
+    }
+}
+
+pub trait SupportsReturning {
+    fn returning(&mut self, returning: Returning) -> &mut Self;
+    fn return_all(&mut self) -> &mut Self {
+        self.returning(Returning::All)
+    }
+    fn return_columns<C>(&mut self, columns: Vec<C>) -> &mut Self
+    where
+        C: ColumnType + 'static,
+    {
+        self.returning(Returning::Columns(
+            columns.into_iter().map(|c| c.dyn_column()).collect(),
+        ))
     }
 }

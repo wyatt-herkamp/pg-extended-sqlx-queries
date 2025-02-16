@@ -1,21 +1,22 @@
 use sqlx::{Database, Postgres};
 use tracing::{debug, instrument};
 
-use crate::{FormatWhere, SQLCondition};
+use crate::{DynColumn, FormatWhere, FormatWhereItem, Returning, SQLCondition, SupportsReturning};
 
 use super::{
     ColumnType, Expr, ExprType, FormatSql, FormatSqlQuery, HasArguments, QueryTool, WhereableTool,
 };
 
-pub struct UpdateQueryBuilder<'table, 'args, C: ColumnType> {
-    table: &'table str,
-    columns_to_update: Vec<(C, Expr)>,
+pub struct UpdateQueryBuilder<'args> {
+    table: &'static str,
+    columns_to_update: Vec<(DynColumn, Expr)>,
     where_comparisons: Vec<SQLCondition>,
     sql: Option<String>,
+    returning: Returning,
     arguments: Option<<Postgres as Database>::Arguments<'args>>,
 }
 
-impl<'args, C: ColumnType> HasArguments<'args> for UpdateQueryBuilder<'_, 'args, C> {
+impl<'args> HasArguments<'args> for UpdateQueryBuilder<'args> {
     fn take_arguments_or_error(&mut self) -> <Postgres as Database>::Arguments<'args> {
         self.arguments.take().expect("Arguments already taken")
     }
@@ -25,21 +26,19 @@ impl<'args, C: ColumnType> HasArguments<'args> for UpdateQueryBuilder<'_, 'args,
     }
 }
 
-impl<'args, C: ColumnType> WhereableTool<'args> for UpdateQueryBuilder<'_, 'args, C> {
+impl<'args> WhereableTool<'args> for UpdateQueryBuilder<'args> {
     fn push_where_comparison(&mut self, comparison: crate::SQLCondition) {
         self.where_comparisons.push(comparison);
     }
 }
-impl<'args, C: ColumnType> FormatWhere for UpdateQueryBuilder<'_, 'args, C> {
+impl<'args> FormatWhere for UpdateQueryBuilder<'args> {
     fn get_conditions(&self) -> &[SQLCondition] {
         &self.where_comparisons
     }
 }
-impl<'args, C: ColumnType> FormatSqlQuery for UpdateQueryBuilder<'_, 'args, C> {
+impl<'args> FormatSqlQuery for UpdateQueryBuilder<'args> {
     #[instrument(skip(self), fields(table = %self.table, statement.type = "UPDATE"))]
     fn format_sql_query(&mut self) -> &str {
-        let mut sql = format!("UPDATE {} SET ", self.table);
-
         let columns_to_update = self
             .columns_to_update
             .iter()
@@ -47,13 +46,12 @@ impl<'args, C: ColumnType> FormatSqlQuery for UpdateQueryBuilder<'_, 'args, C> {
             .collect::<Vec<_>>()
             .join(", ");
 
-        sql.push_str(&columns_to_update);
-
-        if !self.where_comparisons.is_empty() {
-            let where_sql = self.format_where();
-            sql.push_str(" WHERE ");
-            sql.push_str(&where_sql);
-        }
+        let sql = format!(
+            "UPDATE {table} SET {columns_to_update}{filter}{returning};",
+            table = self.table,
+            filter = FormatWhereItem(self),
+            returning = self.returning
+        );
         debug!(?sql, "UpdateQueryBuilder::format_sql_query");
         self.sql = Some(sql);
 
@@ -61,31 +59,35 @@ impl<'args, C: ColumnType> FormatSqlQuery for UpdateQueryBuilder<'_, 'args, C> {
     }
 }
 
-impl<'args, C: ColumnType> QueryTool<'args> for UpdateQueryBuilder<'_, 'args, C> {}
+impl<'args> QueryTool<'args> for UpdateQueryBuilder<'args> {}
 
-impl<'table, 'args, C> UpdateQueryBuilder<'table, 'args, C>
-where
-    C: ColumnType,
-{
-    pub fn new(table: &'table str) -> Self {
+impl<'args> UpdateQueryBuilder<'args> {
+    pub fn new(table: &'static str) -> Self {
         Self {
             table,
             columns_to_update: Vec::new(),
             where_comparisons: Vec::new(),
             sql: None,
+            returning: Returning::None,
             arguments: Some(Default::default()),
         }
     }
-    pub fn set<V>(&mut self, column: C, value: V) -> &mut Self
+    pub fn set<C, V>(&mut self, column: C, value: V) -> &mut Self
     where
+        C: ColumnType + 'static,
         V: ExprType<'args> + 'args,
     {
         let value = value.process_unboxed(self);
-        self.columns_to_update.push((column, value));
+        self.columns_to_update.push((column.dyn_column(), value));
         self
     }
 }
-
+impl SupportsReturning for UpdateQueryBuilder<'_> {
+    fn returning(&mut self, returning: Returning) -> &mut Self {
+        self.returning = returning;
+        self
+    }
+}
 #[cfg(test)]
 mod tests {
     use sqlformat::{FormatOptions, QueryParams};
@@ -93,7 +95,7 @@ mod tests {
     use crate::{
         testing::{AnotherTable, AnotherTableColumn, TestTable, TestTableColumn},
         DynEncodeType, ExprFunctionBuilder, ExpressionWhereable, FilterExpr, FormatSqlQuery,
-        SelectExprBuilder, TableType, UpdateQueryBuilder, WhereableTool,
+        SelectExprBuilder, SupportsReturning, TableType, UpdateQueryBuilder, WhereableTool,
     };
 
     #[test]
@@ -111,7 +113,24 @@ mod tests {
             )
             .set(TestTableColumn::UpdatedAt, ExprFunctionBuilder::now());
         let sql = query.format_sql_query();
+        assert_eq!(sql, "UPDATE test_table SET age = $2, email = $3, phone = (SELECT another_table.phone FROM another_table WHERE another_table.id = $4), updated_at = NOW() WHERE test_table.id = $1;");
 
+        let sql = sqlformat::format(sql, &QueryParams::None, &FormatOptions::default());
+
+        println!("{}", sql);
+    }
+
+    #[test]
+    pub fn test_builder_with_return() {
+        let mut query = UpdateQueryBuilder::new(TestTable::table_name());
+        query.filter(TestTableColumn::Id.equals(1.value()));
+        query
+            .set(TestTableColumn::Age, 19.value())
+            .set(TestTableColumn::Email, "test_ref_value@kingtux.dev".value())
+            .set(TestTableColumn::UpdatedAt, ExprFunctionBuilder::now())
+            .return_all();
+        let sql = query.format_sql_query();
+        assert_eq!(sql, "UPDATE test_table SET age = $2, email = $3, updated_at = NOW() WHERE test_table.id = $1 RETURNING *;");
         let sql = sqlformat::format(sql, &QueryParams::None, &FormatOptions::default());
 
         println!("{}", sql);

@@ -1,23 +1,24 @@
 use std::fmt::Debug;
 
 use crate::{
-    concat_columns_no_table_name, ColumnType, FormatSql, FormatSqlQuery, HasArguments, QueryTool,
+    concat_columns_no_table_name, ColumnType, FormatSql, FormatSqlQuery, HasArguments, OnConflict,
+    QueryTool, SupportsReturning,
 };
 use sqlx::{Database, Postgres};
 mod row;
 pub use row::*;
 use tracing::{debug, instrument};
 
-use super::{OnConflict, Returning};
+use super::Returning;
 
 pub struct InsertManyBuilder<'args, C: ColumnType> {
     columns_to_insert: Vec<C>,
     sql: Option<String>,
-    returning: Returning<C>,
+    returning: Returning,
     rows: Vec<InsertRow<C>>,
     table: &'static str,
     arguments: Option<<Postgres as Database>::Arguments<'args>>,
-    on_conflict: Option<OnConflict<C>>,
+    on_conflict: Option<OnConflict>,
 }
 impl<'args, C> HasArguments<'args> for InsertManyBuilder<'args, C>
 where
@@ -57,7 +58,7 @@ impl<'args, C: ColumnType> InsertManyBuilder<'args, C> {
             on_conflict: None,
         }
     }
-    pub fn set_on_conflict(&mut self, on_conflict: OnConflict<C>) -> &mut Self {
+    pub fn set_on_conflict(&mut self, on_conflict: OnConflict) -> &mut Self {
         self.on_conflict = Some(on_conflict);
         self
     }
@@ -94,13 +95,10 @@ impl<'args, C: ColumnType> InsertManyBuilder<'args, C> {
 
         self
     }
-
-    pub fn return_all(&mut self) -> &mut Self {
-        self.returning = Returning::All;
-        self
-    }
-    pub fn return_columns(&mut self, columns: Vec<C>) -> &mut Self {
-        self.returning = Returning::Columns(columns);
+}
+impl<C: ColumnType> SupportsReturning for InsertManyBuilder<'_, C> {
+    fn returning(&mut self, returning: Returning) -> &mut Self {
+        self.returning = returning;
         self
     }
 }
@@ -134,7 +132,7 @@ mod tests {
 
     use crate::{
         testing::{TestTable, TestTableColumn},
-        DynEncodeType, FormatSqlQuery, TableQuery, TableType,
+        DynEncodeType, FormatSqlQuery, SupportsReturning, TableQuery, TableType,
     };
 
     #[test]

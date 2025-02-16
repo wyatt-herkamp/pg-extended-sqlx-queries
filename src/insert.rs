@@ -1,21 +1,20 @@
 use std::fmt::Debug;
 
 use crate::{
-    ColumnType, DynColumn, Expr, ExprType, FormatSql, FormatSqlQuery, HasArguments, QueryTool,
-    Returning,
+    ColumnType, DynColumn, Expr, ExprType, FormatSql, FormatSqlQuery, HasArguments, OnConflict,
+    QueryTool, Returning, SupportsReturning,
 };
 use sqlx::{Database, Postgres};
-mod conflict;
-pub use conflict::*;
+
 use tracing::{debug, instrument};
 pub mod many;
 pub struct InsertQueryBuilder<'args> {
     columns: Vec<DynColumn>,
     insert: Vec<Expr>,
     sql: Option<String>,
-    returning: Returning<DynColumn>,
+    returning: Returning,
     table: &'static str,
-    on_conflict: Option<OnConflict<DynColumn>>,
+    on_conflict: Option<OnConflict>,
     arguments: Option<<Postgres as Database>::Arguments<'args>>,
 }
 impl<'args> HasArguments<'args> for InsertQueryBuilder<'args> {
@@ -50,11 +49,8 @@ impl<'args> InsertQueryBuilder<'args> {
             returning: Default::default(),
         }
     }
-    pub fn set_on_conflict<C>(&mut self, on_conflict: OnConflict<C>) -> &mut Self
-    where
-        C: ColumnType + 'static,
-    {
-        self.on_conflict = Some(on_conflict.dyn_column());
+    pub fn set_on_conflict(&mut self, on_conflict: OnConflict) -> &mut Self {
+        self.on_conflict = Some(on_conflict);
         self
     }
     /// Insert a value into the query
@@ -85,21 +81,14 @@ impl<'args> InsertQueryBuilder<'args> {
             self
         }
     }
-
-    pub fn return_all(&mut self) -> &mut Self {
-        self.returning = Returning::All;
-        self
-    }
-    pub fn return_columns<C>(&mut self, columns: Vec<C>) -> &mut Self
-    where
-        C: ColumnType + 'static,
-    {
-        let columns = columns.into_iter().map(|c| c.dyn_column()).collect();
-        self.returning = Returning::Columns(columns);
+}
+impl<'args> QueryTool<'args> for InsertQueryBuilder<'args> {}
+impl SupportsReturning for InsertQueryBuilder<'_> {
+    fn returning(&mut self, returning: Returning) -> &mut Self {
+        self.returning = returning;
         self
     }
 }
-impl<'args> QueryTool<'args> for InsertQueryBuilder<'args> {}
 impl FormatSqlQuery for InsertQueryBuilder<'_> {
     #[instrument(skip(self), fields(table = %self.table, statement.type = "INSERT"))]
     fn format_sql_query(&mut self) -> &str {

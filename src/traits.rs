@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::fmt::Display;
 use std::future::Future;
 
 use sqlx::postgres::{PgArguments, PgRow};
@@ -153,6 +154,17 @@ pub trait FormatWhere {
             .map(|condition| condition.format_sql())
             .collect::<Vec<_>>()
             .join(" AND ")
+    }
+}
+pub(crate) struct FormatWhereItem<'query, F>(pub &'query F)
+where
+    F: FormatWhere;
+impl<'query, F> Display for FormatWhereItem<'query, F>
+where
+    F: FormatWhere,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, " WHERE {}", self.0.format_where())
     }
 }
 pub trait ExpressionWhereable<'args>: Sized {
