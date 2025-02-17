@@ -118,7 +118,25 @@ macro_rules! value_expr_type {
                     Expr::ArgumentIndex(args.push_argument(self))
                 }
             }
+            impl<'args, $bound: $bound_param> ExprType<'args> for Vec<$ty> {
+                fn process(self: Box<Self>, args: &mut ArgumentHolder<'args>) -> $crate::Expr
+                where
+                    Self: 'args,
+                {
+                    Expr::ArgumentIndex(args.push_argument(*self))
+                }
+
+                fn process_unboxed(self, args: &mut ArgumentHolder<'args>) -> $crate::Expr
+                where
+                    Self: 'args,
+                {
+                    Expr::ArgumentIndex(args.push_argument(self))
+                }
+            }
             impl<'args, $bound: $bound_param + 'args> $crate::WrapInFunction<'args> for $ty {}
+            impl<'args, $bound: $bound_param + 'args> $crate::WrapInFunction<'args> for Option<$ty> {}
+            impl<'args, $bound: $bound_param + 'args> $crate::WrapInFunction<'args> for Vec<$ty> {}
+
 
         )*
     };
@@ -158,7 +176,25 @@ macro_rules! value_expr_type {
                     Expr::ArgumentIndex(args.push_argument(self))
                 }
             }
+            impl<'args> ExprType<'args> for Vec<$ty> {
+                fn process(self: Box<Self>, args: &mut ArgumentHolder<'args>) -> $crate::Expr
+                where
+                    Self: 'args,
+                {
+                    Expr::ArgumentIndex(args.push_argument(*self))
+                }
+
+                fn process_unboxed(self, args: &mut ArgumentHolder<'args>) -> $crate::Expr
+                where
+                    Self: 'args,
+                {
+                    Expr::ArgumentIndex(args.push_argument(self))
+                }
+            }
             impl<'args> $crate::WrapInFunction<'args> for $ty {}
+            impl<'args> $crate::WrapInFunction<'args> for Option<$ty> {}
+            impl<'args> $crate::WrapInFunction<'args> for Vec<$ty> {}
+
         )*
     };
 
