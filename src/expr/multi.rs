@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use crate::FormatSql;
 
-use super::{Aliasable, DynExpr, Expr, ExprType};
+use super::{arguments::ArgumentHolder, Aliasable, DynExpr, Expr, ExprType};
 pub trait MultipleExprType<'args>: ExprType<'args> {
     fn then<E>(self, function: E) -> MultipleExprBuilder<'args>
     where
@@ -38,7 +38,7 @@ impl<'args> MultipleExprType<'args> for MultipleExprBuilder<'args> {
     where
         E: ExprType<'args> + 'args,
     {
-        self.functions.push(Box::new(function));
+        self.functions.push(DynExpr::new(function));
         self
     }
 }
@@ -64,14 +64,14 @@ impl FormatSql for MultipleExpr {
 }
 
 impl<'args> ExprType<'args> for MultipleExprBuilder<'args> {
-    fn process(self: Box<Self>, args: &mut dyn crate::HasArguments<'args>) -> Expr
+    fn process(self: Box<Self>, args: &mut ArgumentHolder<'args>) -> Expr
     where
         Self: 'args,
     {
         self.process_unboxed(args)
     }
 
-    fn process_unboxed(self, args: &mut dyn crate::HasArguments<'args>) -> Expr
+    fn process_unboxed(self, args: &mut ArgumentHolder<'args>) -> Expr
     where
         Self: 'args,
     {
@@ -79,7 +79,7 @@ impl<'args> ExprType<'args> for MultipleExprBuilder<'args> {
             functions: self
                 .functions
                 .into_iter()
-                .map(|function| function.process(args))
+                .map(|function| function.process_unboxed(args))
                 .collect(),
         };
         Expr::Multiple(functions)

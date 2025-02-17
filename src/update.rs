@@ -1,11 +1,9 @@
-use sqlx::{Database, Postgres};
+use crate::arguments::{ArgumentHolder, HasArguments};
 use tracing::{debug, instrument};
 
 use crate::{DynColumn, FormatWhere, FormatWhereItem, Returning, SQLCondition, SupportsReturning};
 
-use super::{
-    ColumnType, Expr, ExprType, FormatSql, FormatSqlQuery, HasArguments, QueryTool, WhereableTool,
-};
+use super::{ColumnType, Expr, ExprType, FormatSql, FormatSqlQuery, QueryTool, WhereableTool};
 
 pub struct UpdateQueryBuilder<'args> {
     table: &'static str,
@@ -13,16 +11,12 @@ pub struct UpdateQueryBuilder<'args> {
     where_comparisons: Vec<SQLCondition>,
     sql: Option<String>,
     returning: Returning,
-    arguments: Option<<Postgres as Database>::Arguments<'args>>,
+    arguments: ArgumentHolder<'args>,
 }
 
 impl<'args> HasArguments<'args> for UpdateQueryBuilder<'args> {
-    fn take_arguments_or_error(&mut self) -> <Postgres as Database>::Arguments<'args> {
-        self.arguments.take().expect("Arguments already taken")
-    }
-
-    fn borrow_arguments_or_error(&mut self) -> &mut <Postgres as Database>::Arguments<'args> {
-        self.arguments.as_mut().expect("Arguments already taken")
+    fn holder(&mut self) -> &mut ArgumentHolder<'args> {
+        &mut self.arguments
     }
 }
 
@@ -69,7 +63,7 @@ impl<'args> UpdateQueryBuilder<'args> {
             where_comparisons: Vec::new(),
             sql: None,
             returning: Returning::None,
-            arguments: Some(Default::default()),
+            arguments: Default::default(),
         }
     }
     pub fn set<C, V>(&mut self, column: C, value: V) -> &mut Self
@@ -77,7 +71,7 @@ impl<'args> UpdateQueryBuilder<'args> {
         C: ColumnType + 'static,
         V: ExprType<'args> + 'args,
     {
-        let value = value.process_unboxed(self);
+        let value = value.process_unboxed(&mut self.arguments);
         self.columns_to_update.push((column.dyn_column(), value));
         self
     }
@@ -104,7 +98,7 @@ mod tests {
         query.filter(TestTableColumn::Id.equals(1.value()));
         query
             .set(TestTableColumn::Age, 19.value())
-            .set(TestTableColumn::Email, "test_ref_value@kingtux.dev".value())
+            .set(TestTableColumn::Email, "test_ref_value@kingtux.dev")
             .set(
                 TestTableColumn::Phone,
                 SelectExprBuilder::new(AnotherTable::table_name())
@@ -123,10 +117,10 @@ mod tests {
     #[test]
     pub fn test_builder_with_return() {
         let mut query = UpdateQueryBuilder::new(TestTable::table_name());
-        query.filter(TestTableColumn::Id.equals(1.value()));
+        query.filter(TestTableColumn::Id.equals(1));
         query
-            .set(TestTableColumn::Age, 19.value())
-            .set(TestTableColumn::Email, "test_ref_value@kingtux.dev".value())
+            .set(TestTableColumn::Age, 19)
+            .set(TestTableColumn::Email, "test_ref_value@kingtux.dev")
             .set(TestTableColumn::UpdatedAt, ExprFunctionBuilder::now())
             .return_all();
         let sql = query.format_sql_query();

@@ -1,13 +1,13 @@
-use sqlx::{Database, Postgres};
+use crate::arguments::{ArgumentHolder, HasArguments};
 use tracing::{debug, instrument};
 
-use crate::{FormatSqlQuery, FormatWhere, HasArguments, SQLCondition, WhereableTool};
+use crate::{FormatSqlQuery, FormatWhere, SQLCondition, WhereableTool};
 
 pub struct DeleteQueryBuilder<'args> {
     table: &'static str,
     where_comparisons: Vec<SQLCondition>,
     sql: Option<String>,
-    arguments: Option<<Postgres as Database>::Arguments<'args>>,
+    arguments: ArgumentHolder<'args>,
 }
 impl<'args> DeleteQueryBuilder<'args> {
     pub fn new(table: &'static str) -> Self {
@@ -15,17 +15,13 @@ impl<'args> DeleteQueryBuilder<'args> {
             table,
             where_comparisons: vec![],
             sql: None,
-            arguments: Some(Default::default()),
+            arguments: Default::default(),
         }
     }
 }
 impl<'args> HasArguments<'args> for DeleteQueryBuilder<'args> {
-    fn take_arguments_or_error(&mut self) -> <Postgres as Database>::Arguments<'args> {
-        self.arguments.take().expect("Arguments already taken")
-    }
-
-    fn borrow_arguments_or_error(&mut self) -> &mut <Postgres as Database>::Arguments<'args> {
-        self.arguments.as_mut().expect("Arguments already taken")
+    fn holder(&mut self) -> &mut ArgumentHolder<'args> {
+        &mut self.arguments
     }
 }
 

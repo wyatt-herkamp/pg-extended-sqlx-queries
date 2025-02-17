@@ -21,7 +21,7 @@ impl<'query, 'args, C: ColumnType + PartialEq + Clone> InsertRowBuilder<'query, 
     where
         E: ExprType<'args> + 'args,
     {
-        let expr = value.process_unboxed(self.query);
+        let expr = value.process_unboxed(&mut self.query.arguments);
         self.columns_to_insert.push((column, expr));
         self
     }
@@ -36,7 +36,7 @@ impl<'query, 'args, C: ColumnType + PartialEq + Clone> InsertRowBuilder<'query, 
         E: ExprType<'args> + 'args,
     {
         if let Some(value) = value {
-            let expr = value.process_unboxed(self.query);
+            let expr = value.process_unboxed(&mut self.query.arguments);
 
             self.columns_to_insert.push((column, expr));
         } else {
@@ -100,7 +100,7 @@ impl<'query, 'args, C: ColumnType + PartialEq + Clone> InsertRowOrderedBuilder<'
     where
         E: ExprType<'args> + 'args,
     {
-        let expr = value.process_unboxed(self.query);
+        let expr = value.process_unboxed(&mut self.query.arguments);
         self.columns_to_insert.push(expr);
         self
     }
@@ -116,7 +116,7 @@ impl<'query, 'args, C: ColumnType + PartialEq + Clone> InsertRowOrderedBuilder<'
     {
         if let Some(value) = value {
             self.columns_to_insert
-                .push(value.process_unboxed(self.query));
+                .push(value.process_unboxed(&mut self.query.arguments));
         } else {
             self.columns_to_insert.push(SqlDefault::default().into());
         }

@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 
-use crate::{AndOr, Expr, ExprType, FilterConditionBuilder, FormatSql, HasArguments, SQLCondition};
+use crate::arguments::HasArguments;
+use crate::{AndOr, Expr, ExprType, FilterConditionBuilder, FormatSql, SQLCondition};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum JoinType {
@@ -83,7 +84,7 @@ where
     where
         E: ExprType<'args> + 'args,
     {
-        let expr = expr.process_unboxed(self.args);
+        let expr = expr.process_unboxed(&mut self.args.holder());
         self.select.push(expr);
         self
     }
@@ -93,14 +94,17 @@ where
     {
         let expr: Vec<_> = columns
             .into_iter()
-            .map(|expr| expr.process_unboxed(self.args))
+            .map(|expr| expr.process_unboxed(&mut self.args.holder()))
             .collect();
 
         self.select.extend(expr);
         self
     }
-    pub fn on(self, condition: FilterConditionBuilder<'args>) -> Join {
-        let on = condition.process_inner(self.args);
+    pub fn on<L: ExprType<'args> + 'args, R: ExprType<'args> + 'args>(
+        self,
+        condition: FilterConditionBuilder<'args, L, R>,
+    ) -> Join {
+        let on = condition.process_inner(&mut self.args.holder());
         Join {
             join_type: self.join_type,
             table: self.table,

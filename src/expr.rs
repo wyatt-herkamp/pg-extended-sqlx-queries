@@ -13,17 +13,44 @@ mod returning;
 pub use returning::*;
 mod conflict;
 mod other;
+use crate::arguments::ArgumentHolder;
 pub use conflict::*;
 pub use multi::*;
 pub use other::*;
 pub use select_expr::*;
-pub type DynExpr<'args> = Box<dyn ExprType<'args> + 'args>;
-use super::{ColumnType, DynColumn, FormatSql, HasArguments};
+
+pub struct DynExpr<'args>(Box<dyn ExprType<'args> + 'args>);
+impl<'args> DynExpr<'args> {
+    pub fn new<E>(expr: E) -> Self
+    where
+        E: ExprType<'args> + 'args,
+    {
+        Self(Box::new(expr))
+    }
+}
+impl<'args> ExprType<'args> for DynExpr<'args> {
+    fn process(self: Box<Self>, args: &mut ArgumentHolder<'args>) -> Expr
+    where
+        Self: 'args,
+    {
+        self.0.process(args)
+    }
+
+    fn process_unboxed(self, args: &mut ArgumentHolder<'args>) -> Expr
+    where
+        Self: 'args,
+    {
+        self.0.process(args)
+    }
+}
+use self::arguments::ArgumentIndex;
+
+use super::{ColumnType, DynColumn, FormatSql};
 pub trait ExprType<'args> {
-    fn process(self: Box<Self>, args: &mut dyn HasArguments<'args>) -> Expr
+    fn process(self: Box<Self>, args: &mut ArgumentHolder<'args>) -> Expr
     where
         Self: 'args;
-    fn process_unboxed(self, args: &mut dyn HasArguments<'args>) -> Expr
+    fn process_unboxed(self, args: &mut ArgumentHolder<'args>) -> Expr
     where
         Self: 'args;
 }
@@ -68,14 +95,14 @@ impl FormatSql for Expr {
 #[derive(Debug, Default)]
 pub struct All;
 impl<'args> ExprType<'args> for All {
-    fn process(self: Box<Self>, _: &mut dyn HasArguments<'args>) -> Expr
+    fn process(self: Box<Self>, _: &mut ArgumentHolder<'args>) -> Expr
     where
         Self: 'args,
     {
         Expr::All(*self)
     }
 
-    fn process_unboxed(self, _: &mut dyn HasArguments<'args>) -> Expr
+    fn process_unboxed(self, _: &mut ArgumentHolder<'args>) -> Expr
     where
         Self: 'args,
     {
@@ -107,14 +134,14 @@ impl From<SqlDefault> for Expr {
 }
 
 impl<'args> ExprType<'args> for SqlDefault {
-    fn process(self: Box<Self>, _: &mut dyn HasArguments<'args>) -> Expr
+    fn process(self: Box<Self>, _: &mut ArgumentHolder<'args>) -> Expr
     where
         Self: 'args,
     {
         Expr::Default(*self)
     }
 
-    fn process_unboxed(self, _: &mut dyn HasArguments<'args>) -> Expr
+    fn process_unboxed(self, _: &mut ArgumentHolder<'args>) -> Expr
     where
         Self: 'args,
     {
@@ -125,13 +152,5 @@ impl<'args> ExprType<'args> for SqlDefault {
 impl FormatSql for SqlDefault {
     fn format_sql(&self) -> Cow<'_, str> {
         Cow::Borrowed("DEFAULT")
-    }
-}
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct ArgumentIndex(usize);
-
-impl FormatSql for ArgumentIndex {
-    fn format_sql(&self) -> Cow<'_, str> {
-        Cow::Owned(format!("${}", self.0))
     }
 }

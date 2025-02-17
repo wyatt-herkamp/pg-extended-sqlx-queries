@@ -2,46 +2,14 @@ use std::borrow::Cow;
 use std::fmt::Display;
 use std::future::Future;
 
-use sqlx::postgres::{PgArguments, PgRow};
+use sqlx::postgres::PgRow;
 use sqlx::query::{Query, QueryAs, QueryScalar};
-use sqlx::{Arguments, Decode, FromRow, Type};
 use sqlx::{Database, Postgres};
+use sqlx::{Decode, FromRow, Type};
 use tracing::trace;
 
-use crate::{DynEncode, FilterConditionBuilder, SQLCondition};
-
-/// A sql tool that has [Arguments](sqlx::Arguments) that can be used to build a query.
-///
-/// Arguments being the values that will be used to fill in the placeholders in the query.
-///
-/// # Note
-/// The tools are highly inspired by the QueryBuilder in sqlx.
-///
-/// This means it stores arguments in an [Option] and can be removed from the type and may cause panics. if removed and then the item is used again
-pub trait HasArguments<'args> {
-    /// Takes the arguments list or panics if it is not available.
-    fn take_arguments_or_error(&mut self) -> PgArguments;
-    /// Borrows the arguments list or panics if it is not available.
-    fn borrow_arguments_or_error(&mut self) -> &mut PgArguments;
-    /// Pushes an argument to the arguments list.
-    fn push_argument<T>(&mut self, value: T) -> usize
-    where
-        T: 'args + sqlx::Encode<'args, Postgres> + sqlx::Type<Postgres>,
-        Self: Sized,
-    {
-        let arguments = self.borrow_arguments_or_error();
-        arguments.add(value).expect("Failed to add argument");
-        arguments.len()
-    }
-
-    fn push_dyn_argument(&mut self, value: DynEncode<'args>) -> usize {
-        let arguments = self.borrow_arguments_or_error();
-        arguments
-            .add(value)
-            .expect("Failed to add dynamic argument");
-        arguments.len()
-    }
-}
+use crate::arguments::HasArguments;
+use crate::{ExprType, FilterConditionBuilder, SQLCondition};
 
 pub trait FormatSql {
     fn format_sql(&self) -> Cow<'_, str>;
@@ -71,7 +39,7 @@ pub trait QueryTool<'args>: HasArguments<'args> + FormatSqlQuery {
     ///
     /// See [sqlx::query_with] for more information.
     fn query(&mut self) -> Query<'_, Postgres, <Postgres as Database>::Arguments<'args>> {
-        let args = self.take_arguments_or_error();
+        let args = self.holder().take_arguments_or_error();
         let sql = self.format_sql_query();
         trace!(?sql, "Generated SQL");
 
@@ -84,7 +52,7 @@ pub trait QueryTool<'args>: HasArguments<'args> + FormatSqlQuery {
     where
         T: for<'r> FromRow<'r, PgRow>,
     {
-        let args = self.take_arguments_or_error();
+        let args = self.holder().take_arguments_or_error();
 
         let sql = self.format_sql_query();
         trace!(?sql, "Generated SQL");
@@ -99,7 +67,7 @@ pub trait QueryTool<'args>: HasArguments<'args> + FormatSqlQuery {
     where
         (O,): for<'r> FromRow<'r, PgRow>,
     {
-        let args = self.take_arguments_or_error();
+        let args = self.holder().take_arguments_or_error();
 
         let sql = self.format_sql_query();
         trace!(?sql, "Generated SQL");
@@ -129,8 +97,11 @@ pub trait QueryScalarTool<'args>: QueryTool<'args> + Send {
 }
 
 pub trait WhereableTool<'args>: HasArguments<'args> + Sized {
-    fn filter(&mut self, filter: FilterConditionBuilder<'args>) -> &mut Self {
-        let condition = filter.process_inner(self);
+    fn filter<L: ExprType<'args> + 'args, R: ExprType<'args> + 'args>(
+        &mut self,
+        filter: FilterConditionBuilder<'args, L, R>,
+    ) -> &mut Self {
+        let condition = filter.process_inner(&mut self.holder());
 
         self.push_where_comparison(condition);
 
@@ -168,7 +139,10 @@ where
     }
 }
 pub trait ExpressionWhereable<'args>: Sized {
-    fn filter(mut self, filter: FilterConditionBuilder<'args>) -> Self {
+    fn filter<L: ExprType<'args> + 'args, R: ExprType<'args> + 'args>(
+        mut self,
+        filter: FilterConditionBuilder<'args, L, R>,
+    ) -> Self {
         self.push_where_comparison(filter);
 
         self
@@ -179,5 +153,8 @@ pub trait ExpressionWhereable<'args>: Sized {
     /// The internal structure will be a Vec<WhereComparison>
     ///
     /// Each are concatenated with an AND
-    fn push_where_comparison(&mut self, comparison: FilterConditionBuilder<'args>);
+    fn push_where_comparison<L: ExprType<'args> + 'args, R: ExprType<'args> + 'args>(
+        &mut self,
+        comparison: FilterConditionBuilder<'args, L, R>,
+    );
 }

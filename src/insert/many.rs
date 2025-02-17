@@ -1,10 +1,10 @@
 use std::fmt::Debug;
 
 use crate::{
-    concat_columns_no_table_name, ColumnType, FormatSql, FormatSqlQuery, HasArguments, OnConflict,
-    QueryTool, SupportsReturning,
+    arguments::{ArgumentHolder, HasArguments},
+    concat_columns_no_table_name, ColumnType, FormatSql, FormatSqlQuery, OnConflict, QueryTool,
+    SupportsReturning,
 };
-use sqlx::{Database, Postgres};
 mod row;
 pub use row::*;
 use tracing::{debug, instrument};
@@ -17,19 +17,15 @@ pub struct InsertManyBuilder<'args, C: ColumnType> {
     returning: Returning,
     rows: Vec<InsertRow<C>>,
     table: &'static str,
-    arguments: Option<<Postgres as Database>::Arguments<'args>>,
+    arguments: ArgumentHolder<'args>,
     on_conflict: Option<OnConflict>,
 }
 impl<'args, C> HasArguments<'args> for InsertManyBuilder<'args, C>
 where
     C: ColumnType,
 {
-    fn take_arguments_or_error(&mut self) -> <Postgres as Database>::Arguments<'args> {
-        self.arguments.take().expect("Arguments already taken")
-    }
-
-    fn borrow_arguments_or_error(&mut self) -> &mut <Postgres as Database>::Arguments<'args> {
-        self.arguments.as_mut().expect("Arguments already taken")
+    fn holder(&mut self) -> &mut ArgumentHolder<'args> {
+        &mut self.arguments
     }
 }
 
@@ -50,7 +46,7 @@ impl<'args, C: ColumnType> InsertManyBuilder<'args, C> {
     pub fn new(table: &'static str, columns: impl Into<Vec<C>>) -> Self {
         Self {
             table,
-            arguments: Some(Default::default()),
+            arguments: Default::default(),
             columns_to_insert: columns.into(),
             sql: None,
             rows: Vec::new(),

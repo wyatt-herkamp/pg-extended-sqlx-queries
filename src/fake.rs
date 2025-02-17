@@ -3,29 +3,27 @@
 //! This is used to test the SQL Expressions
 //!
 //! This is NOT STABLE API and any usage will break at any time
-use sqlx::Postgres;
 
-use crate::{FormatWhere, HasArguments, SQLCondition, WhereableTool};
+use crate::{
+    arguments::{ArgumentHolder, HasArguments},
+    FormatWhere, SQLCondition, WhereableTool,
+};
 /// A utility struct for testing different SQL Queries
 pub struct FakeQuery<'args> {
-    pub(crate) arguments: Option<<Postgres as sqlx::Database>::Arguments<'args>>,
-    pub(crate) conditions: Vec<SQLCondition>,
+    pub arguments: ArgumentHolder<'args>,
+    pub conditions: Vec<SQLCondition>,
 }
 impl Default for FakeQuery<'_> {
     fn default() -> Self {
         Self {
-            arguments: Some(Default::default()),
+            arguments: Default::default(),
             conditions: Vec::new(),
         }
     }
 }
 impl<'args> HasArguments<'args> for FakeQuery<'args> {
-    fn take_arguments_or_error(&mut self) -> <Postgres as sqlx::Database>::Arguments<'args> {
-        self.arguments.take().expect("Arguments already taken")
-    }
-
-    fn borrow_arguments_or_error(&mut self) -> &mut <Postgres as sqlx::Database>::Arguments<'args> {
-        self.arguments.as_mut().expect("Arguments already taken")
+    fn holder(&mut self) -> &mut ArgumentHolder<'args> {
+        &mut self.arguments
     }
 }
 impl<'args> WhereableTool<'args> for FakeQuery<'args> {

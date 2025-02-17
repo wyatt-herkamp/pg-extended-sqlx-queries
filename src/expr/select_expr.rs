@@ -6,8 +6,8 @@ use crate::{
 };
 
 use super::{
-    concat_with_comma, Aliasable, DynExpr, Expr, ExprType, FilterConditionBuilder, SQLCondition,
-    WrapInFunction,
+    arguments::ArgumentHolder, concat_with_comma, Aliasable, DynExpr, Expr, ExprType,
+    FilterConditionBuilder, SQLCondition, WrapInFunction,
 };
 #[derive(Debug)]
 pub struct SelectExpr {
@@ -64,14 +64,17 @@ impl FormatSql for SelectExpr {
 pub struct SelectExprBuilder<'args> {
     table: &'static str,
     select: Vec<DynExpr<'args>>,
-    where_comparisons: Vec<FilterConditionBuilder<'args>>,
+    where_comparisons: Vec<FilterConditionBuilder<'args, DynExpr<'args>, DynExpr<'args>>>,
     limit: Option<i64>,
     offset: Option<i64>,
     order_by: Option<(DynColumn, SQLOrder)>,
 }
 impl<'args> ExpressionWhereable<'args> for SelectExprBuilder<'args> {
-    fn push_where_comparison(&mut self, comparison: FilterConditionBuilder<'args>) {
-        self.where_comparisons.push(comparison);
+    fn push_where_comparison<L: ExprType<'args> + 'args, R: ExprType<'args> + 'args>(
+        &mut self,
+        comparison: FilterConditionBuilder<'args, L, R>,
+    ) {
+        self.where_comparisons.push(comparison.dyn_expression());
     }
 }
 impl PaginationOwnedSupportingTool for SelectExprBuilder<'_> {
@@ -101,14 +104,14 @@ impl<'args> SelectExprBuilder<'args> {
     where
         C: ColumnType + 'static,
     {
-        self.select.push(Box::new(column.dyn_column()));
+        self.select.push(DynExpr::new(column));
         self
     }
     pub fn select_expr<E>(mut self, expr: E) -> Self
     where
         E: ExprType<'args> + 'args,
     {
-        self.select.push(Box::new(expr));
+        self.select.push(DynExpr::new(expr));
         self
     }
     pub fn order_by<C>(mut self, column: C, order: SQLOrder) -> Self
@@ -120,14 +123,14 @@ impl<'args> SelectExprBuilder<'args> {
     }
 }
 impl<'args> ExprType<'args> for SelectExprBuilder<'args> {
-    fn process(self: Box<Self>, args: &mut dyn crate::HasArguments<'args>) -> super::Expr
+    fn process(self: Box<Self>, args: &mut ArgumentHolder<'args>) -> super::Expr
     where
         Self: 'args,
     {
         self.process_unboxed(args)
     }
 
-    fn process_unboxed(self, args: &mut dyn crate::HasArguments<'args>) -> super::Expr
+    fn process_unboxed(self, args: &mut ArgumentHolder<'args>) -> super::Expr
     where
         Self: 'args,
     {
@@ -139,7 +142,7 @@ impl<'args> ExprType<'args> for SelectExprBuilder<'args> {
         let select = self
             .select
             .into_iter()
-            .map(|expr| expr.process(args))
+            .map(|expr| expr.process_unboxed(args))
             .collect();
         let select = SelectExpr {
             table: self.table,
@@ -176,7 +179,7 @@ mod tests {
 
         // Code for faking the query
         let mut parent = FakeQuery::default();
-        let expr = sub_select.process_unboxed(&mut parent);
+        let expr = sub_select.process_unboxed(&mut parent.arguments);
 
         assert_eq!(
             expr.format_sql().into_owned(),

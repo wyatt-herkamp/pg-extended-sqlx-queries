@@ -1,10 +1,11 @@
 use crate::{Expr, ExprType, FormatWhere, SQLCondition};
 
 use super::{
-    ColumnType, DynColumn, FormatSql, FormatSqlQuery, HasArguments, PaginationSupportingTool,
-    QueryTool, SQLOrder, WhereableTool,
+    ColumnType, DynColumn, FormatSql, FormatSqlQuery, PaginationSupportingTool, QueryTool,
+    SQLOrder, WhereableTool,
 };
-use sqlx::{Database, Postgres};
+use crate::arguments::{ArgumentHolder, HasArguments};
+
 mod count;
 mod exists;
 mod join;
@@ -19,7 +20,7 @@ pub struct SelectQueryBuilder<'args> {
     where_comparisons: Vec<SQLCondition>,
     sql: Option<String>,
     joins: Vec<join::Join>,
-    arguments: Option<<Postgres as Database>::Arguments<'args>>,
+    arguments: ArgumentHolder<'args>,
     limit: Option<i32>,
     offset: Option<i32>,
     order_by: Option<(DynColumn, SQLOrder)>,
@@ -45,7 +46,7 @@ impl<'args> SelectQueryBuilder<'args> {
             where_comparisons: Vec::new(),
             sql: None,
             joins: Vec::new(),
-            arguments: Some(Default::default()),
+            arguments: Default::default(),
             limit: None,
             offset: None,
             order_by: None,
@@ -67,7 +68,7 @@ impl<'args> SelectQueryBuilder<'args> {
             where_comparisons: Vec::new(),
             sql: None,
             joins: Vec::new(),
-            arguments: Some(Default::default()),
+            arguments: Default::default(),
             limit: None,
             offset: None,
             order_by: None,
@@ -102,7 +103,7 @@ impl<'args> SelectQueryBuilder<'args> {
     where
         E: ExprType<'args> + 'args,
     {
-        let expr = expr.process_unboxed(self);
+        let expr = expr.process_unboxed(&mut self.arguments);
         self.select.push(expr);
         self
     }
@@ -112,7 +113,7 @@ impl<'args> SelectQueryBuilder<'args> {
     {
         let exprs: Vec<_> = exprs
             .into_iter()
-            .map(|expr| expr.process_unboxed(self))
+            .map(|expr| expr.process_unboxed(&mut self.arguments))
             .collect();
         self.select.extend(exprs);
         self
@@ -175,11 +176,8 @@ impl<'args> FormatSqlQuery for SelectQueryBuilder<'args> {
 }
 impl<'args> QueryTool<'args> for SelectQueryBuilder<'args> {}
 impl<'args> HasArguments<'args> for SelectQueryBuilder<'args> {
-    fn take_arguments_or_error(&mut self) -> <Postgres as Database>::Arguments<'args> {
-        self.arguments.take().expect("Arguments already taken")
-    }
-    fn borrow_arguments_or_error(&mut self) -> &mut <Postgres as Database>::Arguments<'args> {
-        self.arguments.as_mut().expect("Arguments already taken")
+    fn holder(&mut self) -> &mut ArgumentHolder<'args> {
+        &mut self.arguments
     }
 }
 impl FormatWhere for SelectQueryBuilder<'_> {

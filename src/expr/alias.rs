@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use crate::FormatSql;
 
-use super::{Expr, ExprType};
+use super::{arguments::ArgumentHolder, Expr, ExprType};
 
 pub struct ExprAsType<'args, E: ExprType<'args>> {
     expr: E,
@@ -26,11 +26,11 @@ impl<'args, E> ExprType<'args> for ExprAsType<'args, E>
 where
     E: ExprType<'args>,
 {
-    fn process(self: Box<Self>, args: &mut dyn crate::HasArguments<'args>) -> super::Expr {
+    fn process(self: Box<Self>, args: &mut ArgumentHolder<'args>) -> super::Expr {
         self.process_unboxed(args)
     }
 
-    fn process_unboxed(self, args: &mut dyn crate::HasArguments<'args>) -> super::Expr {
+    fn process_unboxed(self, args: &mut ArgumentHolder<'args>) -> super::Expr {
         let inner = self.expr.process_unboxed(args);
         Expr::Alias(ExprAlias {
             expr: Box::new(inner),

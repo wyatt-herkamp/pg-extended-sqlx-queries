@@ -1,93 +1,71 @@
 use crate::{ExprType, SQLComparison};
 
-use super::FilterConditionBuilder;
-
+use super::{FilterConditionBuilder, OneSidedFilterConditionExprType};
+macro_rules! compairson {
+    (
+        $(
+            $name:ident: $value:ident
+        ),*
+    ) => {
+        $(
+        fn $name<E>(self, value: E) -> FilterConditionBuilder<'args, Self, E>
+        where
+            Self: Sized + 'args,
+            E: ExprType<'args> + 'args,
+        {
+            self.compare(SQLComparison::$value, value)
+        }
+        )*
+    };
+}
 pub trait FilterExpr<'args>: ExprType<'args> {
-    fn equals<E>(self, value: E) -> FilterConditionBuilder<'args>
-    where
-        Self: Sized + 'args,
-        E: ExprType<'args> + 'args,
-    {
-        self.compare(SQLComparison::Equals, value)
+    compairson! {
+        equals: Equals,
+        like: Like,
+        less_than: LessThan,
+        less_than_or_equals: LessThanOrEqualTo,
+        greater_than: GreaterThan,
+        greater_than_or_equals: GreaterThanOrEqualTo,
+        not_equals: NotEquals
     }
-    fn like<E>(self, value: E) -> FilterConditionBuilder<'args>
+    fn is_not_null(self) -> FilterConditionBuilder<'args, Self, OneSidedFilterConditionExprType>
     where
         Self: Sized + 'args,
-        E: ExprType<'args> + 'args,
     {
-        self.compare(SQLComparison::Like, value)
+        FilterConditionBuilder::NotNull(self)
     }
-    fn is_not_null(self) -> FilterConditionBuilder<'args>
+    fn is_null(self) -> FilterConditionBuilder<'args, Self, OneSidedFilterConditionExprType>
     where
         Self: Sized + 'args,
     {
-        FilterConditionBuilder::NotNull(Box::new(self))
-    }
-    fn is_null(self) -> FilterConditionBuilder<'args>
-    where
-        Self: Sized + 'args,
-    {
-        FilterConditionBuilder::Null(Box::new(self))
+        FilterConditionBuilder::Null(self)
     }
 
-    fn less_than<E>(self, value: E) -> FilterConditionBuilder<'args>
-    where
-        Self: Sized + 'args,
-        E: ExprType<'args> + 'args,
-    {
-        self.compare(SQLComparison::LessThan, value)
-    }
-    fn less_than_or_equals<E>(self, value: E) -> FilterConditionBuilder<'args>
-    where
-        Self: Sized + 'args,
-        E: ExprType<'args> + 'args,
-    {
-        self.compare(SQLComparison::LessThanOrEqualTo, value)
-    }
-
-    fn greater_than<E>(self, value: E) -> FilterConditionBuilder<'args>
-    where
-        Self: Sized + 'args,
-        E: ExprType<'args> + 'args,
-    {
-        self.compare(SQLComparison::GreaterThan, value)
-    }
-    fn greater_than_or_equals<E>(self, value: E) -> FilterConditionBuilder<'args>
-    where
-        Self: Sized + 'args,
-        E: ExprType<'args> + 'args,
-    {
-        self.compare(SQLComparison::GreaterThanOrEqualTo, value)
-    }
-
-    fn not_equals<E>(self, value: E) -> FilterConditionBuilder<'args>
-    where
-        Self: Sized + 'args,
-        E: ExprType<'args> + 'args,
-    {
-        self.compare(SQLComparison::NotEquals, value)
-    }
-    fn between<L, R>(self, start: L, end: R) -> FilterConditionBuilder<'args>
+    fn between<L, R>(self, start: L, end: R) -> FilterConditionBuilder<'args, L, R>
     where
         Self: Sized + 'args,
         L: ExprType<'args> + 'args,
         R: ExprType<'args> + 'args,
     {
         FilterConditionBuilder::Between {
-            start: Box::new(start),
-            end: Box::new(end),
+            start: start,
+            end: end,
         }
     }
     /// Compares the current Self with a provided Binary Comparison to the right
-    fn compare<L>(self, comparison: SQLComparison, value: L) -> FilterConditionBuilder<'args>
+    fn compare<L>(
+        self,
+        comparison: SQLComparison,
+        value: L,
+    ) -> FilterConditionBuilder<'args, Self, L>
     where
         Self: Sized + 'args,
         L: ExprType<'args> + 'args,
     {
         FilterConditionBuilder::CompareValue {
-            left: Box::new(self),
+            left: self,
             comparison,
-            right: Box::new(value),
+            right: value,
         }
     }
 }

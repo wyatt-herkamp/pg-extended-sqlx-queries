@@ -1,10 +1,10 @@
+use crate::arguments::{ArgumentHolder, HasArguments};
 use std::fmt::Debug;
 
 use crate::{
-    ColumnType, DynColumn, Expr, ExprType, FormatSql, FormatSqlQuery, HasArguments, OnConflict,
-    QueryTool, Returning, SupportsReturning,
+    ColumnType, DynColumn, Expr, ExprType, FormatSql, FormatSqlQuery, OnConflict, QueryTool,
+    Returning, SupportsReturning,
 };
-use sqlx::{Database, Postgres};
 
 use tracing::{debug, instrument};
 pub mod many;
@@ -15,16 +15,7 @@ pub struct InsertQueryBuilder<'args> {
     returning: Returning,
     table: &'static str,
     on_conflict: Option<OnConflict>,
-    arguments: Option<<Postgres as Database>::Arguments<'args>>,
-}
-impl<'args> HasArguments<'args> for InsertQueryBuilder<'args> {
-    fn take_arguments_or_error(&mut self) -> <Postgres as Database>::Arguments<'args> {
-        self.arguments.take().expect("Arguments already taken")
-    }
-
-    fn borrow_arguments_or_error(&mut self) -> &mut <Postgres as Database>::Arguments<'args> {
-        self.arguments.as_mut().expect("Arguments already taken")
-    }
+    arguments: ArgumentHolder<'args>,
 }
 
 impl Debug for InsertQueryBuilder<'_> {
@@ -41,7 +32,7 @@ impl<'args> InsertQueryBuilder<'args> {
     pub fn new(table: &'static str) -> Self {
         Self {
             table,
-            arguments: Some(Default::default()),
+            arguments: Default::default(),
             columns: Vec::new(),
             insert: Vec::new(),
             sql: None,
@@ -61,7 +52,7 @@ impl<'args> InsertQueryBuilder<'args> {
     {
         self.sql = None;
         self.columns.push(column.dyn_column());
-        let expr = value.process_unboxed(self);
+        let expr = value.process_unboxed(&mut self.arguments);
         self.insert.push(expr);
         self
     }
@@ -80,6 +71,11 @@ impl<'args> InsertQueryBuilder<'args> {
         } else {
             self
         }
+    }
+}
+impl<'args> HasArguments<'args> for InsertQueryBuilder<'args> {
+    fn holder(&mut self) -> &mut ArgumentHolder<'args> {
+        &mut self.arguments
     }
 }
 impl<'args> QueryTool<'args> for InsertQueryBuilder<'args> {}

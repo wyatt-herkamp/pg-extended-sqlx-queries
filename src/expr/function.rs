@@ -2,7 +2,10 @@ use std::borrow::Cow;
 
 use crate::FormatSql;
 
-use super::{Aliasable, All, Expr, ExprType, MultipleExprBuilder, MultipleExprType};
+use super::{
+    arguments::ArgumentHolder, Aliasable, All, Expr, ExprType, MultipleExprBuilder,
+    MultipleExprType,
+};
 pub struct ExprFunctionBuilder<'args> {
     function_name: Cow<'static, str>,
     params: Vec<Box<dyn ExprType<'args> + 'args>>,
@@ -35,13 +38,13 @@ impl<'args> ExprFunctionBuilder<'args> {
     /// ```rust
     ///  use pg_extended_sqlx_queries::prelude::*;
     ///  use pg_extended_sqlx_queries::fake::FakeQuery;
-    ///
+    ///  use crate::pg_extended_sqlx_queries::arguments::HasArguments;
     ///  let mut fake_query = FakeQuery::default();
     ///  let expr = ExprFunctionBuilder::count_all();
     ///  let other_way = ExprFunctionBuilder::count().add_param(All::new());
     ///
-    ///  let expr = expr.process_unboxed(&mut fake_query);
-    ///  let other_way = other_way.process_unboxed(&mut fake_query);
+    ///  let expr = expr.process_unboxed(&mut fake_query.holder());
+    ///  let other_way = other_way.process_unboxed(&mut fake_query.holder());
     ///
     ///  let expr = expr.format_sql();
     ///  let other_way = other_way.format_sql();
@@ -55,14 +58,14 @@ impl<'args> ExprFunctionBuilder<'args> {
     }
 }
 impl<'args> ExprType<'args> for ExprFunctionBuilder<'args> {
-    fn process(self: Box<Self>, args: &mut dyn crate::HasArguments<'args>) -> Expr
+    fn process(self: Box<Self>, args: &mut ArgumentHolder<'args>) -> Expr
     where
         Self: 'args,
     {
         self.process_unboxed(args)
     }
 
-    fn process_unboxed(self, args: &mut dyn crate::HasArguments<'args>) -> Expr
+    fn process_unboxed(self, args: &mut ArgumentHolder<'args>) -> Expr
     where
         Self: 'args,
     {
@@ -184,7 +187,7 @@ mod tests {
 
         // Code for faking the query
         let mut parent = FakeQuery::default();
-        let expr = expr.process_unboxed(&mut parent);
+        let expr = expr.process_unboxed(&mut parent.arguments);
 
         assert_eq!(expr.format_sql(), "COUNT(*) OVER() AS count_over");
     }

@@ -1,15 +1,12 @@
-use sqlx::{Database, Postgres};
+use crate::arguments::{ArgumentHolder, HasArguments};
 
-use crate::{
-    FormatSqlQuery, FormatWhere, HasArguments, QueryScalarTool, QueryTool, SQLCondition,
-    WhereableTool,
-};
+use crate::{FormatSqlQuery, FormatWhere, QueryScalarTool, QueryTool, SQLCondition, WhereableTool};
 /// Counts the number of rows in a table based on the given where comparisons.
 pub struct SelectCount<'args> {
     table: &'static str,
     where_comparisons: Vec<SQLCondition>,
     sql: Option<String>,
-    arguments: Option<<Postgres as Database>::Arguments<'args>>,
+    arguments: ArgumentHolder<'args>,
 }
 impl<'args> WhereableTool<'args> for SelectCount<'args> {
     fn push_where_comparison(&mut self, comparison: SQLCondition) {
@@ -27,20 +24,17 @@ impl SelectCount<'_> {
             table,
             where_comparisons: Vec::new(),
             sql: None,
-            arguments: Some(Default::default()),
+            arguments: Default::default(),
         }
     }
 }
-impl HasArguments<'_> for SelectCount<'_> {
-    fn take_arguments_or_error(&mut self) -> <Postgres as Database>::Arguments<'_> {
-        self.arguments.take().expect("Arguments already taken")
-    }
-    fn borrow_arguments_or_error(&mut self) -> &mut <Postgres as Database>::Arguments<'_> {
-        self.arguments.as_mut().expect("Arguments already taken")
+impl<'args> HasArguments<'args> for SelectCount<'args> {
+    fn holder(&mut self) -> &mut ArgumentHolder<'args> {
+        &mut self.arguments
     }
 }
 
-impl QueryTool<'_> for SelectCount<'_> {}
+impl<'args> QueryTool<'args> for SelectCount<'args> {}
 impl FormatSqlQuery for SelectCount<'_> {
     fn format_sql_query(&mut self) -> &str {
         let mut sql = format!("SELECT COUNT(1) FROM {}", self.table);
@@ -56,7 +50,7 @@ impl FormatSqlQuery for SelectCount<'_> {
         self.sql.as_ref().expect("SQL not set")
     }
 }
-impl QueryScalarTool<'_> for SelectCount<'_> {
+impl<'args> QueryScalarTool<'args> for SelectCount<'args> {
     type Output = i64;
 }
 

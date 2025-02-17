@@ -1,15 +1,12 @@
-use sqlx::{Database, Postgres};
+use crate::arguments::{ArgumentHolder, HasArguments};
 
-use crate::{
-    FormatSqlQuery, FormatWhere, HasArguments, QueryScalarTool, QueryTool, SQLCondition,
-    WhereableTool,
-};
+use crate::{FormatSqlQuery, FormatWhere, QueryScalarTool, QueryTool, SQLCondition, WhereableTool};
 
 pub struct SelectExists<'args> {
     table: &'static str,
     where_comparisons: Vec<SQLCondition>,
     sql: Option<String>,
-    arguments: Option<<Postgres as Database>::Arguments<'args>>,
+    arguments: ArgumentHolder<'args>,
 }
 impl<'args> WhereableTool<'args> for SelectExists<'args> {
     fn push_where_comparison(&mut self, comparison: crate::SQLCondition) {
@@ -27,20 +24,17 @@ impl SelectExists<'_> {
             table,
             where_comparisons: Vec::new(),
             sql: None,
-            arguments: Some(Default::default()),
+            arguments: Default::default(),
         }
     }
 }
-impl HasArguments<'_> for SelectExists<'_> {
-    fn take_arguments_or_error(&mut self) -> <Postgres as Database>::Arguments<'_> {
-        self.arguments.take().expect("Arguments already taken")
-    }
-    fn borrow_arguments_or_error(&mut self) -> &mut <Postgres as Database>::Arguments<'_> {
-        self.arguments.as_mut().expect("Arguments already taken")
+impl<'args> HasArguments<'args> for SelectExists<'args> {
+    fn holder(&mut self) -> &mut ArgumentHolder<'args> {
+        &mut self.arguments
     }
 }
-impl QueryTool<'_> for SelectExists<'_> {}
-impl QueryScalarTool<'_> for SelectExists<'_> {
+impl<'args> QueryTool<'args> for SelectExists<'args> {}
+impl<'args> QueryScalarTool<'args> for SelectExists<'args> {
     type Output = bool;
 }
 impl FormatSqlQuery for SelectExists<'_> {

@@ -1,85 +1,151 @@
+use std::marker::PhantomData;
+
 use crate::{AndOr, FormatSql, SQLComparison};
 
-use super::{Expr, ExprType};
+use super::{arguments::ArgumentHolder, DynExpr, Expr, ExprType};
 mod expr;
 pub use expr::*;
-pub enum FilterConditionBuilder<'args> {
+pub struct OneSidedFilterConditionExprType(PhantomData<()>);
+
+impl<'args> ExprType<'args> for OneSidedFilterConditionExprType {
+    fn process(self: Box<Self>, _: &mut ArgumentHolder<'args>) -> Expr
+    where
+        Self: 'args,
+    {
+        unimplemented!("OneSidedFilterConditionExprType cannot be processed")
+    }
+
+    fn process_unboxed(self, _: &mut ArgumentHolder<'args>) -> Expr
+    where
+        Self: 'args,
+    {
+        unimplemented!("OneSidedFilterConditionExprType cannot be processed")
+    }
+}
+pub enum FilterConditionBuilder<'args, L: ExprType<'args> + 'args, R: ExprType<'args> + 'args> {
     CompareValue {
-        left: Box<dyn ExprType<'args> + 'args>,
+        left: L,
         comparison: SQLComparison,
-        right: Box<dyn ExprType<'args> + 'args>,
+        right: R,
     },
     Between {
-        start: Box<dyn ExprType<'args> + 'args>,
-        end: Box<dyn ExprType<'args> + 'args>,
+        start: L,
+        end: R,
     },
-    NotNull(Box<dyn ExprType<'args> + 'args>),
-    Null(Box<dyn ExprType<'args> + 'args>),
+    NotNull(L),
+    Null(L),
 
     Then {
-        left: Box<FilterConditionBuilder<'args>>,
+        left: L,
         and_or: AndOr,
-        right: Box<FilterConditionBuilder<'args>>,
+        right: R,
     },
+    Hidden(PhantomData<&'args ()>),
 }
-impl<'args> FilterConditionBuilder<'args> {
-    pub fn and(self, right: FilterConditionBuilder<'args>) -> FilterConditionBuilder<'args> {
+
+impl<'args, L: ExprType<'args> + 'args, R: ExprType<'args> + 'args>
+    FilterConditionBuilder<'args, L, R>
+{
+    pub fn and<RL: ExprType<'args>, RR: ExprType<'args>>(
+        self,
+        right: FilterConditionBuilder<'args, RL, RR>,
+    ) -> FilterConditionBuilder<'args, Self, FilterConditionBuilder<'args, RL, RR>> {
         FilterConditionBuilder::Then {
-            left: Box::new(self),
+            left: self,
             and_or: AndOr::And,
-            right: Box::new(right),
+            right: right,
         }
     }
-    pub fn or(self, right: FilterConditionBuilder<'args>) -> FilterConditionBuilder<'args> {
+    pub fn or<RL: ExprType<'args>, RR: ExprType<'args>>(
+        self,
+        right: FilterConditionBuilder<'args, RL, RR>,
+    ) -> FilterConditionBuilder<'args, Self, FilterConditionBuilder<'args, RL, RR>> {
         FilterConditionBuilder::Then {
-            left: Box::new(self),
+            left: self,
             and_or: AndOr::Or,
-            right: Box::new(right),
+            right: right,
         }
     }
-    pub(crate) fn process_inner(self, args: &mut dyn crate::HasArguments<'args>) -> SQLCondition {
+    pub fn dyn_expression(self) -> FilterConditionBuilder<'args, DynExpr<'args>, DynExpr<'args>> {
+        match self {
+            FilterConditionBuilder::CompareValue {
+                left,
+                comparison,
+                right,
+            } => FilterConditionBuilder::CompareValue {
+                left: DynExpr::new(left),
+                comparison,
+                right: DynExpr::new(right),
+            },
+            FilterConditionBuilder::Between { start, end } => FilterConditionBuilder::Between {
+                start: DynExpr::new(start),
+                end: DynExpr::new(end),
+            },
+            FilterConditionBuilder::NotNull(expr) => {
+                FilterConditionBuilder::NotNull(DynExpr::new(expr))
+            }
+            FilterConditionBuilder::Null(expr) => FilterConditionBuilder::Null(DynExpr::new(expr)),
+            FilterConditionBuilder::Then {
+                left,
+                and_or,
+                right,
+            } => FilterConditionBuilder::Then {
+                left: DynExpr::new(left),
+                and_or,
+                right: DynExpr::new(right),
+            },
+            FilterConditionBuilder::Hidden(_) => unreachable!(),
+        }
+    }
+
+    pub(crate) fn process_inner(self, args: &mut ArgumentHolder<'args>) -> SQLCondition {
         match self {
             FilterConditionBuilder::CompareValue {
                 left,
                 comparison,
                 right,
             } => SQLCondition::CompareValue {
-                left: left.process(args),
+                left: left.process_unboxed(args),
                 comparison,
-                right: right.process(args),
+                right: right.process_unboxed(args),
             },
             FilterConditionBuilder::Between { start, end } => SQLCondition::Between {
-                start: start.process(args),
-                end: end.process(args),
+                start: start.process_unboxed(args),
+                end: end.process_unboxed(args),
             },
-            FilterConditionBuilder::NotNull(expr) => SQLCondition::NotNull(expr.process(args)),
-            FilterConditionBuilder::Null(expr) => SQLCondition::Null(expr.process(args)),
+            FilterConditionBuilder::NotNull(expr) => {
+                SQLCondition::NotNull(expr.process_unboxed(args))
+            }
+            FilterConditionBuilder::Null(expr) => SQLCondition::Null(expr.process_unboxed(args)),
             FilterConditionBuilder::Then {
                 left,
                 and_or,
                 right,
             } => SQLCondition::Then {
-                left: left.process(args),
+                left: left.process_unboxed(args),
                 and_or,
-                right: right.process(args),
+                right: right.process_unboxed(args),
             },
+            FilterConditionBuilder::Hidden(_) => unreachable!(),
         }
     }
 }
-impl<'args> ExprType<'args> for FilterConditionBuilder<'args> {
-    fn process(self: Box<Self>, args: &mut dyn crate::HasArguments<'args>) -> Expr
+
+impl<'args, L: ExprType<'args> + 'args, R: ExprType<'args> + 'args> ExprType<'args>
+    for FilterConditionBuilder<'args, L, R>
+{
+    fn process(self: Box<Self>, args: &mut crate::arguments::ArgumentHolder<'args>) -> crate::Expr
     where
         Self: 'args,
     {
         self.process_unboxed(args)
     }
 
-    fn process_unboxed(self, args: &mut dyn crate::HasArguments<'args>) -> Expr
+    fn process_unboxed(self, args: &mut crate::arguments::ArgumentHolder<'args>) -> crate::Expr
     where
         Self: 'args,
     {
-        let condition = self.process_inner(args);
-        Expr::Condition(Box::new(condition))
+        crate::Expr::Condition(Box::new(self.process_inner(args)))
     }
 }
 #[derive(Debug)]
@@ -121,7 +187,7 @@ impl FormatSql for SQLCondition {
             )
             .into(),
             SQLCondition::Between { start, end } => {
-                format!("{} AND {}", start.format_sql(), end.format_sql()).into()
+                format!("BETWEEN {} AND {}", start.format_sql(), end.format_sql()).into()
             }
             SQLCondition::NotNull(expr) => format!("{} IS NOT NULL", expr.format_sql()).into(),
             SQLCondition::Null(expr) => format!("{} IS NULL", expr.format_sql()).into(),

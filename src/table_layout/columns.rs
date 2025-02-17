@@ -1,5 +1,6 @@
 use std::{borrow::Cow, fmt::Debug};
 
+use crate::arguments::ArgumentHolder;
 use crate::{Aliasable, Expr, ExprType, WrapInFunction};
 
 #[derive(Debug)]
@@ -70,14 +71,14 @@ impl<'args, C> ExprType<'args> for C
 where
     C: ColumnType + 'static,
 {
-    fn process(self: Box<Self>, _: &mut dyn crate::HasArguments<'args>) -> crate::Expr
+    fn process(self: Box<Self>, _: &mut ArgumentHolder<'args>) -> crate::Expr
     where
         Self: 'args,
     {
         Expr::Column((*self).dyn_column())
     }
 
-    fn process_unboxed(self, _: &mut dyn crate::HasArguments<'args>) -> crate::Expr
+    fn process_unboxed(self, _: &mut ArgumentHolder<'args>) -> crate::Expr
     where
         Self: 'args,
     {
