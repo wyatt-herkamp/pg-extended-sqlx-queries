@@ -1,6 +1,6 @@
 use crate::{ExprType, SQLComparison};
 
-use super::{FilterConditionBuilder, OneSidedFilterConditionExprType};
+use super::{FilterConditionBuilder, FilterConditionBuilderInner, OneSidedFilterConditionExprType};
 macro_rules! compairson {
     (
         $(
@@ -32,25 +32,26 @@ pub trait FilterExpr<'args>: ExprType<'args> {
     where
         Self: Sized + 'args,
     {
-        FilterConditionBuilder::NotNull(self)
+        FilterConditionBuilderInner::NotNull(self).into()
     }
     fn is_null(self) -> FilterConditionBuilder<'args, Self, OneSidedFilterConditionExprType>
     where
         Self: Sized + 'args,
     {
-        FilterConditionBuilder::Null(self)
+        FilterConditionBuilderInner::Null(self).into()
     }
 
-    fn between<L, R>(self, start: L, end: R) -> FilterConditionBuilder<'args, L, R>
+    fn between<R>(self, start: R, end: R) -> FilterConditionBuilder<'args, Self, R>
     where
         Self: Sized + 'args,
-        L: ExprType<'args> + 'args,
         R: ExprType<'args> + 'args,
     {
-        FilterConditionBuilder::Between {
-            start: start,
-            end: end,
+        FilterConditionBuilderInner::Between {
+            value: self,
+            start,
+            end,
         }
+        .into()
     }
     /// Compares the current Self with a provided Binary Comparison to the right
     fn compare<L>(
@@ -62,11 +63,12 @@ pub trait FilterExpr<'args>: ExprType<'args> {
         Self: Sized + 'args,
         L: ExprType<'args> + 'args,
     {
-        FilterConditionBuilder::CompareValue {
+        FilterConditionBuilderInner::CompareValue {
             left: self,
             comparison,
             right: value,
         }
+        .into()
     }
 }
 

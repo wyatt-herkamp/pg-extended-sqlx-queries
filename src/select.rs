@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use crate::{Expr, ExprType, FormatWhere, SQLCondition};
 
 use super::{
@@ -15,7 +17,7 @@ pub use join::*;
 use tracing::{debug, instrument};
 
 pub struct SelectQueryBuilder<'args> {
-    table: &'static str,
+    table: Cow<'args, str>,
     select: Vec<Expr>,
     where_comparisons: Vec<SQLCondition>,
     sql: Option<String>,
@@ -39,9 +41,9 @@ impl PaginationSupportingTool for SelectQueryBuilder<'_> {
     }
 }
 impl<'args> SelectQueryBuilder<'args> {
-    pub fn new(table: &'static str) -> Self {
+    pub fn new(table: &'args str) -> Self {
         Self {
-            table,
+            table: Cow::Borrowed(table),
             select: Vec::new(),
             where_comparisons: Vec::new(),
             sql: None,
@@ -53,7 +55,7 @@ impl<'args> SelectQueryBuilder<'args> {
             total_count: None,
         }
     }
-    pub fn with_columns<C>(table: &'static str, columns: impl Into<Vec<C>>) -> Self
+    pub fn with_columns<C>(table: &'args str, columns: impl Into<Vec<C>>) -> Self
     where
         C: ColumnType + 'static,
     {
@@ -63,7 +65,7 @@ impl<'args> SelectQueryBuilder<'args> {
             .map(|column| Expr::Column(column.dyn_column()))
             .collect();
         Self {
-            table,
+            table: Cow::Borrowed(table),
             select: columns,
             where_comparisons: Vec::new(),
             sql: None,
@@ -286,6 +288,19 @@ mod tests {
         assert_eq!(
             sql,
             "SELECT test_table.id AS user_id FROM test_table WHERE test_table.phone = ANY($1)"
+        );
+    }
+    #[test]
+    fn select_between() {
+        let mut select = SelectQueryBuilder::new(TestTable::table_name());
+        select.select(TestTableColumn::Id.alias("user_id"));
+
+        select.filter(TestTableColumn::Age.between(50, 100));
+
+        let sql = select.format_sql_query();
+        assert_eq!(
+            sql,
+            "SELECT test_table.id AS user_id FROM test_table WHERE test_table.age BETWEEN $1 AND $2"
         );
     }
 }

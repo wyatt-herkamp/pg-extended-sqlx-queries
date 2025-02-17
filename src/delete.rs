@@ -1,18 +1,20 @@
+use std::borrow::Cow;
+
 use crate::arguments::{ArgumentHolder, HasArguments};
 use tracing::{debug, instrument};
 
 use crate::{FormatSqlQuery, FormatWhere, SQLCondition, WhereableTool};
 
 pub struct DeleteQueryBuilder<'args> {
-    table: &'static str,
+    table: Cow<'args, str>,
     where_comparisons: Vec<SQLCondition>,
     sql: Option<String>,
     arguments: ArgumentHolder<'args>,
 }
 impl<'args> DeleteQueryBuilder<'args> {
-    pub fn new(table: &'static str) -> Self {
+    pub fn new(table: &'args str) -> Self {
         Self {
-            table,
+            table: Cow::Borrowed(table),
             where_comparisons: vec![],
             sql: None,
             arguments: Default::default(),

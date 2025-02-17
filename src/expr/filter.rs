@@ -1,9 +1,10 @@
 use std::marker::PhantomData;
-
+mod builder;
 use crate::{AndOr, FormatSql, SQLComparison};
 
 use super::{arguments::ArgumentHolder, DynExpr, Expr, ExprType};
 mod expr;
+use builder::FilterConditionBuilderInner;
 pub use expr::*;
 pub struct OneSidedFilterConditionExprType(PhantomData<()>);
 
@@ -22,25 +23,15 @@ impl<'args> ExprType<'args> for OneSidedFilterConditionExprType {
         unimplemented!("OneSidedFilterConditionExprType cannot be processed")
     }
 }
-pub enum FilterConditionBuilder<'args, L: ExprType<'args> + 'args, R: ExprType<'args> + 'args> {
-    CompareValue {
-        left: L,
-        comparison: SQLComparison,
-        right: R,
-    },
-    Between {
-        start: L,
-        end: R,
-    },
-    NotNull(L),
-    Null(L),
-
-    Then {
-        left: L,
-        and_or: AndOr,
-        right: R,
-    },
-    Hidden(PhantomData<&'args ()>),
+pub struct FilterConditionBuilder<'args, L: ExprType<'args> + 'args, R: ExprType<'args> + 'args>(
+    FilterConditionBuilderInner<'args, L, R>,
+);
+impl<'args, L: ExprType<'args> + 'args, R: ExprType<'args> + 'args>
+    From<FilterConditionBuilderInner<'args, L, R>> for FilterConditionBuilder<'args, L, R>
+{
+    fn from(value: FilterConditionBuilderInner<'args, L, R>) -> Self {
+        Self(value)
+    }
 }
 
 impl<'args, L: ExprType<'args> + 'args, R: ExprType<'args> + 'args>
@@ -50,84 +41,33 @@ impl<'args, L: ExprType<'args> + 'args, R: ExprType<'args> + 'args>
         self,
         right: FilterConditionBuilder<'args, RL, RR>,
     ) -> FilterConditionBuilder<'args, Self, FilterConditionBuilder<'args, RL, RR>> {
-        FilterConditionBuilder::Then {
+        FilterConditionBuilderInner::Then {
             left: self,
             and_or: AndOr::And,
             right: right,
         }
+        .into()
     }
     pub fn or<RL: ExprType<'args>, RR: ExprType<'args>>(
         self,
         right: FilterConditionBuilder<'args, RL, RR>,
     ) -> FilterConditionBuilder<'args, Self, FilterConditionBuilder<'args, RL, RR>> {
-        FilterConditionBuilder::Then {
+        FilterConditionBuilderInner::Then {
             left: self,
             and_or: AndOr::Or,
             right: right,
         }
+        .into()
+    }
+    pub fn not(self) -> FilterConditionBuilder<'args, Self, OneSidedFilterConditionExprType> {
+        FilterConditionBuilderInner::Not(self).into()
     }
     pub fn dyn_expression(self) -> FilterConditionBuilder<'args, DynExpr<'args>, DynExpr<'args>> {
-        match self {
-            FilterConditionBuilder::CompareValue {
-                left,
-                comparison,
-                right,
-            } => FilterConditionBuilder::CompareValue {
-                left: DynExpr::new(left),
-                comparison,
-                right: DynExpr::new(right),
-            },
-            FilterConditionBuilder::Between { start, end } => FilterConditionBuilder::Between {
-                start: DynExpr::new(start),
-                end: DynExpr::new(end),
-            },
-            FilterConditionBuilder::NotNull(expr) => {
-                FilterConditionBuilder::NotNull(DynExpr::new(expr))
-            }
-            FilterConditionBuilder::Null(expr) => FilterConditionBuilder::Null(DynExpr::new(expr)),
-            FilterConditionBuilder::Then {
-                left,
-                and_or,
-                right,
-            } => FilterConditionBuilder::Then {
-                left: DynExpr::new(left),
-                and_or,
-                right: DynExpr::new(right),
-            },
-            FilterConditionBuilder::Hidden(_) => unreachable!(),
-        }
+        self.0.dyn_expression().into()
     }
 
     pub(crate) fn process_inner(self, args: &mut ArgumentHolder<'args>) -> SQLCondition {
-        match self {
-            FilterConditionBuilder::CompareValue {
-                left,
-                comparison,
-                right,
-            } => SQLCondition::CompareValue {
-                left: left.process_unboxed(args),
-                comparison,
-                right: right.process_unboxed(args),
-            },
-            FilterConditionBuilder::Between { start, end } => SQLCondition::Between {
-                start: start.process_unboxed(args),
-                end: end.process_unboxed(args),
-            },
-            FilterConditionBuilder::NotNull(expr) => {
-                SQLCondition::NotNull(expr.process_unboxed(args))
-            }
-            FilterConditionBuilder::Null(expr) => SQLCondition::Null(expr.process_unboxed(args)),
-            FilterConditionBuilder::Then {
-                left,
-                and_or,
-                right,
-            } => SQLCondition::Then {
-                left: left.process_unboxed(args),
-                and_or,
-                right: right.process_unboxed(args),
-            },
-            FilterConditionBuilder::Hidden(_) => unreachable!(),
-        }
+        self.0.process_inner(args)
     }
 }
 
@@ -158,7 +98,7 @@ pub enum SQLCondition {
     },
     /// Represents a Postgres `BETWEEN` condition
     /// [Postgres Documentation](https://www.postgresql.org/docs/current/functions-comparison.html)
-    Between { start: Expr, end: Expr },
+    Between { value: Expr, start: Expr, end: Expr },
     /// Represents a Postgres `IS NOT NULL` condition
     NotNull(Expr),
 
@@ -171,6 +111,10 @@ pub enum SQLCondition {
         and_or: AndOr,
         right: Expr,
     },
+    /// Represents a Postgres NOT condition
+    ///
+    /// NOT {expr}
+    Not(Expr),
 }
 impl FormatSql for SQLCondition {
     fn format_sql(&self) -> std::borrow::Cow<'_, str> {
@@ -186,9 +130,13 @@ impl FormatSql for SQLCondition {
                 right.format_sql()
             )
             .into(),
-            SQLCondition::Between { start, end } => {
-                format!("BETWEEN {} AND {}", start.format_sql(), end.format_sql()).into()
-            }
+            SQLCondition::Between { value, start, end } => format!(
+                "{} BETWEEN {} AND {}",
+                value.format_sql(),
+                start.format_sql(),
+                end.format_sql()
+            )
+            .into(),
             SQLCondition::NotNull(expr) => format!("{} IS NOT NULL", expr.format_sql()).into(),
             SQLCondition::Null(expr) => format!("{} IS NULL", expr.format_sql()).into(),
             SQLCondition::Then {
@@ -202,6 +150,7 @@ impl FormatSql for SQLCondition {
                 right.format_sql()
             )
             .into(),
+            SQLCondition::Not(expr) => format!("NOT {}", expr.format_sql()).into(),
         }
     }
 }
