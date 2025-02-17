@@ -118,6 +118,8 @@ macro_rules! value_expr_type {
                     Expr::ArgumentIndex(args.push_argument(self))
                 }
             }
+            impl<'args, $bound: $bound_param + 'args> $crate::WrapInFunction<'args> for $ty {}
+
         )*
     };
     (
@@ -156,6 +158,7 @@ macro_rules! value_expr_type {
                     Expr::ArgumentIndex(args.push_argument(self))
                 }
             }
+            impl<'args> $crate::WrapInFunction<'args> for $ty {}
         )*
     };
 
