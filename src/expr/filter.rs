@@ -1,4 +1,3 @@
-use std::marker::PhantomData;
 mod builder;
 use crate::traits::FormatSql;
 
@@ -6,23 +5,7 @@ use super::{arguments::ArgumentHolder, AndOr, DynExpr, Expr, ExprType, SQLCompar
 mod expr;
 use builder::FilterConditionBuilderInner;
 pub use expr::*;
-pub struct OneSidedFilterConditionExprType(PhantomData<()>);
 
-impl<'args> ExprType<'args> for OneSidedFilterConditionExprType {
-    fn process(self: Box<Self>, _: &mut ArgumentHolder<'args>) -> Expr
-    where
-        Self: 'args,
-    {
-        unimplemented!("OneSidedFilterConditionExprType cannot be processed")
-    }
-
-    fn process_unboxed(self, _: &mut ArgumentHolder<'args>) -> Expr
-    where
-        Self: 'args,
-    {
-        unimplemented!("OneSidedFilterConditionExprType cannot be processed")
-    }
-}
 pub struct FilterConditionBuilder<'args, L: ExprType<'args> + 'args, R: ExprType<'args> + 'args>(
     FilterConditionBuilderInner<'args, L, R>,
 );
@@ -59,7 +42,7 @@ impl<'args, L: ExprType<'args> + 'args, R: ExprType<'args> + 'args>
         }
         .into()
     }
-    pub fn not(self) -> FilterConditionBuilder<'args, Self, OneSidedFilterConditionExprType> {
+    pub fn not(self) -> FilterConditionBuilder<'args, Self, ()> {
         FilterConditionBuilderInner::Not(self).into()
     }
     pub fn dyn_expression(self) -> FilterConditionBuilder<'args, DynExpr<'args>, DynExpr<'args>> {
@@ -115,6 +98,11 @@ pub enum SQLCondition {
     ///
     /// NOT {expr}
     Not(Expr),
+    /// {EXPR} COLLATE {COLLATE}
+    Collate {
+        expression: Expr,
+        collate: crate::expr::collate::Collate,
+    },
 }
 impl FormatSql for SQLCondition {
     fn format_sql(&self) -> std::borrow::Cow<'_, str> {
@@ -151,6 +139,10 @@ impl FormatSql for SQLCondition {
             )
             .into(),
             SQLCondition::Not(expr) => format!("NOT {}", expr.format_sql()).into(),
+            SQLCondition::Collate {
+                expression,
+                collate,
+            } => format!("{} {}", expression.format_sql(), collate.format_sql()).into(),
         }
     }
 }

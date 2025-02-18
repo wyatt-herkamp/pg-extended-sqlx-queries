@@ -17,6 +17,8 @@ use crate::{table_layout::*, traits::FormatSql};
 pub use conflict::*;
 pub use multi::*;
 pub use other::*;
+mod collate;
+pub use collate::*;
 pub use select_expr::*;
 pub struct DynExpr<'args>(Box<dyn ExprType<'args> + 'args>);
 impl<'args> DynExpr<'args> {
@@ -63,6 +65,7 @@ pub enum Expr {
     All(All),
     Default(SqlDefault),
     Multiple(MultipleExpr),
+    Empty,
 }
 impl From<DynColumn> for Expr {
     fn from(column: DynColumn) -> Self {
@@ -125,6 +128,23 @@ impl FormatSql for Expr {
             Expr::All(all) => all.format_sql(),
             Expr::Multiple(multiple) => multiple.format_sql(),
             Expr::Default(sql_default) => sql_default.format_sql(),
+            Expr::Empty => Cow::default(),
         }
+    }
+}
+
+impl<'args> ExprType<'args> for () {
+    fn process(self: Box<Self>, _: &mut ArgumentHolder<'args>) -> Expr
+    where
+        Self: 'args,
+    {
+        Expr::Empty
+    }
+
+    fn process_unboxed(self, _: &mut ArgumentHolder<'args>) -> Expr
+    where
+        Self: 'args,
+    {
+        Expr::Empty
     }
 }

@@ -15,6 +15,8 @@ pub enum SQLComparison {
     ///
     /// `LIKE`
     Like,
+    /// ILike (Case Insensitive Like)
+    ILike,
     /// Not Equals
     ///
     /// `!=`
@@ -34,6 +36,7 @@ impl FormatSql for SQLComparison {
             Self::Equals => Cow::Borrowed("="),
             Self::NotEquals => Cow::Borrowed("!="),
             Self::Like => Cow::Borrowed("LIKE"),
+            Self::ILike => Cow::Borrowed("ILIKE"),
             Self::GreaterThan => Cow::Borrowed(">"),
             Self::LessThan => Cow::Borrowed("<"),
             Self::GreaterThanOrEqualTo => Cow::Borrowed(">="),

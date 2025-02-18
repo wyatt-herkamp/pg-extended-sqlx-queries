@@ -25,7 +25,6 @@ pub struct SelectQueryBuilder<'args> {
     limit: Option<i32>,
     offset: Option<i32>,
     order_by: Option<(DynColumn, SQLOrder)>,
-
     total_count: Option<&'static str>,
 }
 impl PaginationSupportingTool for SelectQueryBuilder<'_> {
@@ -76,6 +75,7 @@ impl<'args> SelectQueryBuilder<'args> {
             total_count: None,
         }
     }
+
     pub fn total_count(&mut self, column: &'static str) -> &mut Self {
         self.total_count = Some(column);
         self
@@ -201,6 +201,7 @@ mod tests {
     use sqlformat::{FormatOptions, QueryParams};
 
     use crate::{
+        expr::Collate,
         pagination::PaginationSupportingTool,
         prelude::*,
         testing::{AnotherTable, AnotherTableColumn, TestTable, TestTableColumn},
@@ -302,6 +303,24 @@ mod tests {
         assert_eq!(
             sql,
             "SELECT test_table.id AS user_id FROM test_table WHERE test_table.age BETWEEN $1 AND $2"
+        );
+    }
+    #[test]
+    fn select_collate() {
+        let mut select = SelectQueryBuilder::new(TestTable::table_name());
+        select.select_all().filter(
+            TestTableColumn::FirstName
+                .equals("test".value())
+                .collate(Collate::TrTrxIcu)
+                .or(TestTableColumn::LastName
+                    .equals("test".value())
+                    .collate(Collate::TrTrxIcu)),
+        );
+
+        let sql = select.format_sql_query();
+        assert_eq!(
+            sql,
+            "SELECT * FROM test_table WHERE test_table.first_name = $1 COLLATE \"tr-TR-x-icu\" OR test_table.last_name = $2 COLLATE \"tr-TR-x-icu\""
         );
     }
 }

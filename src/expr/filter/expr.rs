@@ -1,6 +1,6 @@
 use crate::expr::{ExprType, SQLComparison};
 
-use super::{FilterConditionBuilder, FilterConditionBuilderInner, OneSidedFilterConditionExprType};
+use super::{FilterConditionBuilder, FilterConditionBuilderInner};
 macro_rules! compairson {
     (
         $(
@@ -21,6 +21,7 @@ macro_rules! compairson {
 pub trait FilterExpr<'args>: ExprType<'args> {
     compairson! {
         equals: Equals,
+        ilike: ILike,
         like: Like,
         less_than: LessThan,
         less_than_or_equals: LessThanOrEqualTo,
@@ -28,13 +29,13 @@ pub trait FilterExpr<'args>: ExprType<'args> {
         greater_than_or_equals: GreaterThanOrEqualTo,
         not_equals: NotEquals
     }
-    fn is_not_null(self) -> FilterConditionBuilder<'args, Self, OneSidedFilterConditionExprType>
+    fn is_not_null(self) -> FilterConditionBuilder<'args, Self, ()>
     where
         Self: Sized + 'args,
     {
         FilterConditionBuilderInner::NotNull(self).into()
     }
-    fn is_null(self) -> FilterConditionBuilder<'args, Self, OneSidedFilterConditionExprType>
+    fn is_null(self) -> FilterConditionBuilder<'args, Self, ()>
     where
         Self: Sized + 'args,
     {
@@ -67,6 +68,19 @@ pub trait FilterExpr<'args>: ExprType<'args> {
             left: self,
             comparison,
             right: value,
+        }
+        .into()
+    }
+    fn collate(
+        self,
+        collate: crate::expr::collate::Collate,
+    ) -> FilterConditionBuilder<'args, Self, ()>
+    where
+        Self: Sized + 'args,
+    {
+        FilterConditionBuilderInner::Collate {
+            expression: self,
+            collate,
         }
         .into()
     }

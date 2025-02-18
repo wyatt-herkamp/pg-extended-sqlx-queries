@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::prelude::*;
+use crate::{expr::collate::Collate, prelude::*};
 
 use super::SQLCondition;
 
@@ -31,6 +31,11 @@ pub(crate) enum FilterConditionBuilderInner<
     /// Exists just to make the compiler happy
     #[allow(dead_code)]
     Hidden(PhantomData<&'args ()>),
+
+    Collate {
+        expression: L,
+        collate: Collate,
+    },
 }
 impl<'args, L: ExprType<'args> + 'args, R: ExprType<'args> + 'args>
     FilterConditionBuilderInner<'args, L, R>
@@ -64,6 +69,13 @@ impl<'args, L: ExprType<'args> + 'args, R: ExprType<'args> + 'args>
                 left: DynExpr::new(left),
                 and_or,
                 right: DynExpr::new(right),
+            },
+            Self::Collate {
+                expression,
+                collate,
+            } => FilterConditionBuilderInner::Collate {
+                expression: DynExpr::new(expression),
+                collate,
             },
             Self::Hidden(_) => unreachable!(),
         }
@@ -99,6 +111,13 @@ impl<'args, L: ExprType<'args> + 'args, R: ExprType<'args> + 'args>
                 left: left.process_unboxed(args),
                 and_or,
                 right: right.process_unboxed(args),
+            },
+            FilterConditionBuilderInner::Collate {
+                expression,
+                collate,
+            } => SQLCondition::Collate {
+                expression: expression.process_unboxed(args),
+                collate,
             },
             FilterConditionBuilderInner::Not(expr) => SQLCondition::Not(expr.process_unboxed(args)),
             FilterConditionBuilderInner::Hidden(_) => unreachable!(),
