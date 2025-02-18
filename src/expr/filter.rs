@@ -1,7 +1,8 @@
 use std::marker::PhantomData;
 mod builder;
+use crate::traits::FormatSql;
 
-use super::{arguments::ArgumentHolder, AndOr, DynExpr, Expr, ExprType, FormatSql, SQLComparison};
+use super::{arguments::ArgumentHolder, AndOr, DynExpr, Expr, ExprType, SQLComparison};
 mod expr;
 use builder::FilterConditionBuilderInner;
 pub use expr::*;

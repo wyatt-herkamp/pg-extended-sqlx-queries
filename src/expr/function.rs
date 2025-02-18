@@ -2,6 +2,13 @@ use std::borrow::Cow;
 mod expr;
 pub use expr::*;
 
+use crate::traits::FormatSql;
+
+use super::{
+    Aliasable, All, ArgumentHolder, Expr, ExprType, MultipleExpr, MultipleExprBuilder,
+    MultipleExprType,
+};
+
 pub struct SqlFunctionBuilder<'args> {
     function_name: Cow<'static, str>,
     params: MultipleExprBuilder<'args>,
@@ -114,7 +121,7 @@ impl<Params: FormatSql> FormatSql for SqlFunction<Params> {
 #[cfg(test)]
 mod tests {
     use crate::fake::FakeQuery;
-    pub use crate::prelude::*;
+    use crate::prelude::*;
 
     use super::SqlFunctionBuilder;
 

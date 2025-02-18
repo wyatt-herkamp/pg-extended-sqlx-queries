@@ -1,8 +1,6 @@
 use std::fmt::Display;
 
-use crate::{table_layout::concat_columns_no_table_name, ColumnType};
-
-use super::many::DynColumn;
+use crate::{prelude::DynColumn, table_layout::concat_columns_no_table_name, ColumnType};
 
 #[derive(Debug)]
 pub enum Returning {

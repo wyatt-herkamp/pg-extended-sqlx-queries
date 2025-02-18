@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-pub use crate::prelude::*;
+use crate::prelude::*;
 mod builder;
 mod query;
 pub use builder::*;
@@ -134,7 +134,7 @@ impl FormatSql for Option<OnConflict> {
 #[cfg(test)]
 mod tests {
 
-    pub use crate::prelude::*;
+    use crate::prelude::*;
     use crate::testing::TestTableColumn;
 
     #[test]

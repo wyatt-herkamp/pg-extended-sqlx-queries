@@ -2,13 +2,13 @@ use std::fmt::Debug;
 
 use crate::{
     expr::{
-        ArgumentHolder, ConflictQuery, Expr, ExprType, HasArguments, OnConflict, Returning, SupportsReturning,
+        ArgumentHolder, ConflictQuery, Expr, ExprType, HasArguments, OnConflict, Returning,
+        SupportsReturning,
     },
     prelude::{ColumnType, DynColumn},
     table_layout::concat_columns_no_table_name,
-    traits::{FormatSqlQuery, QueryTool},
+    traits::{FormatSql, FormatSqlQuery, QueryTool},
 };
-use many::FormatSql;
 use tracing::{debug, instrument};
 pub mod many;
 pub struct InsertQueryBuilder<'args> {

@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-pub use crate::prelude::*;
+use crate::prelude::*;
 
 use super::SQLCondition;
 

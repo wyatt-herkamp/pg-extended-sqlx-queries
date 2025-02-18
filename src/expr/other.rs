@@ -1,6 +1,7 @@
+use crate::traits::FormatSql;
 use std::borrow::Cow;
 
-use super::{arguments::ArgumentHolder, many::FormatSql, Expr, ExprType};
+use super::{arguments::ArgumentHolder, Expr, ExprType};
 /// SQL Basic Comparisons Types
 ///
 /// This is used in the `WHERE` clause of a query

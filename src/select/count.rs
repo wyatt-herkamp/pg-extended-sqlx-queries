@@ -1,4 +1,4 @@
-pub use crate::prelude::*;
+use crate::prelude::*;
 
 /// Counts the number of rows in a table based on the given where comparisons.
 pub struct SelectCount<'args> {
@@ -57,7 +57,7 @@ impl<'args> QueryScalarTool<'args> for SelectCount<'args> {
 mod tests {
     use sqlformat::{FormatOptions, QueryParams};
 
-    pub use crate::prelude::*;
+    use crate::prelude::*;
     use crate::testing::{TestTable, TestTableColumn};
 
     #[test]

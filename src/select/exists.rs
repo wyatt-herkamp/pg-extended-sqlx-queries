@@ -1,4 +1,4 @@
-pub use crate::prelude::*;
+use crate::prelude::*;
 
 pub struct SelectExists<'args> {
     table: &'static str,
@@ -54,7 +54,7 @@ impl FormatSqlQuery for SelectExists<'_> {
 }
 #[cfg(test)]
 mod tests {
-    pub use crate::prelude::*;
+    use crate::prelude::*;
     use crate::testing::{TestTable, TestTableColumn};
     use sqlformat::{FormatOptions, QueryParams};
 

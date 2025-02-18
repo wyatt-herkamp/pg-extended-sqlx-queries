@@ -30,7 +30,7 @@ pub mod prelude {
     pub use crate::expr::{ArgumentHolder, ArgumentIndex, HasArguments};
 
     pub use crate::expr::*;
-    pub use crate::insert::*;
+    pub use crate::insert::{many::*, InsertQueryBuilder};
     pub use crate::select::*;
     pub use crate::table_layout::{AllColumns, ColumnType, DynColumn, TableQuery, TableType};
     pub use crate::traits::*;

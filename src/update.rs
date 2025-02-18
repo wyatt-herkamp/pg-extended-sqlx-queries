@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use tracing::{debug, instrument};
 
-pub use crate::prelude::*;
+use crate::prelude::*;
 
 pub struct UpdateQueryBuilder<'args> {
     table: Cow<'args, str>,

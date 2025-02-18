@@ -1,6 +1,6 @@
+use super::{arguments::ArgumentHolder, Aliasable, DynExpr, Expr, ExprType};
+use crate::traits::FormatSql;
 use std::borrow::Cow;
-
-use super::{arguments::ArgumentHolder, many::FormatSql, Aliasable, DynExpr, Expr, ExprType};
 pub trait MultipleExprType<'args>: ExprType<'args> {
     fn then<E>(self, function: E) -> MultipleExprBuilder<'args>
     where

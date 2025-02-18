@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-pub use crate::prelude::*;
+use crate::prelude::*;
 
 pub trait WrapInFunction<'args>: ExprType<'args> + 'args {
     fn wrap_in_function(

@@ -1,14 +1,11 @@
 use std::borrow::Cow;
 
-use crate::pagination::PaginationOwnedSupportingTool;
+use crate::prelude::ColumnType;
+use crate::traits::{ExpressionWhereable, FormatSql, FormatWhere};
+use crate::{pagination::PaginationOwnedSupportingTool, prelude::DynColumn};
 
-use super::{
-    arguments::ArgumentHolder,
-    concat_with_comma,
-    many::{DynColumn, FormatSql},
-    Aliasable, ColumnType, DynExpr, Expr, ExprType, ExpressionWhereable, FilterConditionBuilder,
-    FormatWhere, SQLCondition, SQLOrder, WrapInFunction,
-};
+use super::{arguments::ArgumentHolder, concat_with_comma, SQLCondition, SQLOrder};
+use super::{Aliasable, DynExpr, Expr, ExprType, FilterConditionBuilder, WrapInFunction};
 #[derive(Debug)]
 pub struct SelectExpr {
     table: &'static str,

@@ -1,6 +1,12 @@
 use std::{borrow::Cow, fmt::Debug};
 
-use super::{ColumnType, Expr, ExprType, FormatSql, InsertManyBuilder, SqlDefault};
+use crate::{
+    expr::{Expr, ExprType, SqlDefault},
+    prelude::ColumnType,
+    traits::FormatSql,
+};
+
+use super::InsertManyBuilder;
 
 pub struct InsertRowBuilder<'query, 'args, C: ColumnType> {
     /// If None then it will use DEFAULT

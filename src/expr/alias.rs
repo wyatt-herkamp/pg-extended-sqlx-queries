@@ -1,6 +1,7 @@
+use crate::traits::FormatSql;
 use std::borrow::Cow;
 
-use super::{arguments::ArgumentHolder, many::FormatSql, Expr, ExprType};
+use super::{arguments::ArgumentHolder, Expr, ExprType};
 
 pub struct ExprAsType<'args, E: ExprType<'args>> {
     expr: E,
