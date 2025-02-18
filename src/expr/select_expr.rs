@@ -1,13 +1,13 @@
 use std::borrow::Cow;
 
-use crate::{
-    ColumnType, DynColumn, ExpressionWhereable, FormatSql, FormatWhere,
-    PaginationOwnedSupportingTool, SQLOrder,
-};
+use crate::pagination::PaginationOwnedSupportingTool;
 
 use super::{
-    arguments::ArgumentHolder, concat_with_comma, Aliasable, DynExpr, Expr, ExprType,
-    FilterConditionBuilder, SQLCondition, WrapInFunction,
+    arguments::ArgumentHolder,
+    concat_with_comma,
+    many::{DynColumn, FormatSql},
+    Aliasable, ColumnType, DynExpr, Expr, ExprType, ExpressionWhereable, FilterConditionBuilder,
+    FormatWhere, SQLCondition, SQLOrder, WrapInFunction,
 };
 #[derive(Debug)]
 pub struct SelectExpr {
@@ -47,7 +47,7 @@ impl FormatSql for SelectExpr {
         }
         if let Some((column, order)) = &self.order_by {
             sql.push_str(" ORDER BY ");
-            sql.push_str(&column.formatted_column());
+            sql.push_str(&column.full_name());
             sql.push(' ');
             sql.push_str(&order.format_sql());
         }
@@ -104,7 +104,7 @@ impl<'args> SelectExprBuilder<'args> {
     where
         C: ColumnType + 'static,
     {
-        self.select.push(DynExpr::new(column));
+        self.select.push(DynExpr::new(column.dyn_column()));
         self
     }
     pub fn select_expr<E>(mut self, expr: E) -> Self
@@ -161,9 +161,9 @@ impl<'args> WrapInFunction<'args> for SelectExprBuilder<'args> {}
 mod tests {
     use crate::{
         fake::FakeQuery,
+        pagination::PaginationOwnedSupportingTool,
+        prelude::*,
         testing::{TestTable, TestTableColumn},
-        Aliasable, ExprFunctionBuilder, ExprType, FormatSql, PaginationOwnedSupportingTool,
-        TableType, WrapInFunction,
     };
 
     use super::SelectExprBuilder;
@@ -172,7 +172,7 @@ mod tests {
     pub fn basic_select() {
         let sub_select = SelectExprBuilder::new(TestTable::table_name())
             .column(TestTableColumn::Age)
-            .select_expr(ExprFunctionBuilder::now())
+            .select_expr(SqlFunctionBuilder::now())
             .limit(20)
             .array()
             .alias("test_alias");

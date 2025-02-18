@@ -8,8 +8,7 @@ use sqlx::{Database, Postgres};
 use sqlx::{Decode, FromRow, Type};
 use tracing::trace;
 
-use crate::arguments::HasArguments;
-use crate::{ExprType, FilterConditionBuilder, SQLCondition};
+use crate::expr::{ExprType, FilterConditionBuilder, HasArguments, SQLCondition};
 
 pub trait FormatSql {
     fn format_sql(&self) -> Cow<'_, str>;

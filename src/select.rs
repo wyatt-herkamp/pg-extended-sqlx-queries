@@ -1,12 +1,6 @@
 use std::borrow::Cow;
 
-use crate::{Expr, ExprType, FormatWhere, SQLCondition};
-
-use super::{
-    ColumnType, DynColumn, FormatSql, FormatSqlQuery, PaginationSupportingTool, QueryTool,
-    SQLOrder, WhereableTool,
-};
-use crate::arguments::{ArgumentHolder, HasArguments};
+use crate::pagination::PaginationSupportingTool;
 
 mod count;
 mod exists;
@@ -120,6 +114,11 @@ impl<'args> SelectQueryBuilder<'args> {
         self.select.extend(exprs);
         self
     }
+    /// SELECT * FROM table
+    pub fn select_all(&mut self) -> &mut Self {
+        self.select.push(Expr::All(Default::default()));
+        self
+    }
 }
 impl<'args> FormatSqlQuery for SelectQueryBuilder<'args> {
     #[instrument(skip(self), fields(table = %self.table, statement.type = "SELECT"))]
@@ -188,7 +187,7 @@ impl FormatWhere for SelectQueryBuilder<'_> {
     }
 }
 impl<'args> WhereableTool<'args> for SelectQueryBuilder<'args> {
-    fn push_where_comparison(&mut self, comparison: crate::SQLCondition) {
+    fn push_where_comparison(&mut self, comparison: SQLCondition) {
         self.where_comparisons.push(comparison);
     }
 }
@@ -197,13 +196,10 @@ mod tests {
     use sqlformat::{FormatOptions, QueryParams};
 
     use crate::{
+        pagination::PaginationSupportingTool,
+        prelude::*,
         testing::{AnotherTable, AnotherTableColumn, TestTable, TestTableColumn},
-        Aliasable, DynEncodeType, ExprFunctionBuilder, FilterExpr, FormatSqlQuery,
-        MultipleExprType, PaginationSupportingTool, TableType, WhereableTool, WrapInFunction,
     };
-
-    use super::SelectQueryBuilder;
-
     #[test]
     fn basic_select() {
         let mut select = SelectQueryBuilder::new(TestTable::table_name());
@@ -237,8 +233,8 @@ mod tests {
             .limit(10)
             .offset(5)
             .select(
-                ExprFunctionBuilder::count_all()
-                    .then(ExprFunctionBuilder::over())
+                SqlFunctionBuilder::count_all()
+                    .then(SqlFunctionBuilder::over())
                     .alias("total_count"),
             )
             .filter(TestTableColumn::Age.equals(50.value()));
@@ -260,7 +256,7 @@ mod tests {
         let mut select = SelectQueryBuilder::new(TestTable::table_name());
         select
             .select(TestTableColumn::Id.alias("user_id"))
-            .join(AnotherTable::table_name(), crate::JoinType::Inner, |join| {
+            .join(AnotherTable::table_name(), JoinType::Inner, |join| {
                 join.select(AnotherTableColumn::Age)
                     .on(TestTableColumn::Id.equals(AnotherTableColumn::Id))
             })

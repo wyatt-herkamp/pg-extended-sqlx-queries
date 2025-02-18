@@ -1,30 +1,24 @@
 use std::borrow::Cow;
+mod expr;
+pub use expr::*;
 
-use crate::FormatSql;
-
-use super::{
-    arguments::ArgumentHolder, Aliasable, All, Expr, ExprType, MultipleExprBuilder,
-    MultipleExprType,
-};
-pub struct ExprFunctionBuilder<'args> {
+pub struct SqlFunctionBuilder<'args> {
     function_name: Cow<'static, str>,
-    params: Vec<Box<dyn ExprType<'args> + 'args>>,
-    phantom: std::marker::PhantomData<&'args ()>,
+    params: MultipleExprBuilder<'args>,
 }
-impl<'args> Aliasable<'args> for ExprFunctionBuilder<'args> {}
-impl<'args> ExprFunctionBuilder<'args> {
+impl<'args> Aliasable<'args> for SqlFunctionBuilder<'args> {}
+impl<'args> SqlFunctionBuilder<'args> {
     pub fn new(function_name: impl Into<Cow<'static, str>>) -> Self {
         Self {
             function_name: function_name.into(),
-            params: Vec::new(),
-            phantom: std::marker::PhantomData,
+            params: MultipleExprBuilder::new(),
         }
     }
     pub fn add_param<E>(mut self, param: E) -> Self
     where
         E: ExprType<'args> + 'args,
     {
-        self.params.push(Box::new(param));
+        self.params = self.params.push(param);
         self
     }
     pub fn now() -> Self {
@@ -38,10 +32,10 @@ impl<'args> ExprFunctionBuilder<'args> {
     /// ```rust
     ///  use pg_extended_sqlx_queries::prelude::*;
     ///  use pg_extended_sqlx_queries::fake::FakeQuery;
-    ///  use crate::pg_extended_sqlx_queries::arguments::HasArguments;
+    ///  use crate::pg_extended_sqlx_queries::expr::arguments::HasArguments;
     ///  let mut fake_query = FakeQuery::default();
-    ///  let expr = ExprFunctionBuilder::count_all();
-    ///  let other_way = ExprFunctionBuilder::count().add_param(All::new());
+    ///  let expr = SqlFunctionBuilder::count_all();
+    ///  let other_way = SqlFunctionBuilder::count().add_param(All::new());
     ///
     ///  let expr = expr.process_unboxed(&mut fake_query.holder());
     ///  let other_way = other_way.process_unboxed(&mut fake_query.holder());
@@ -56,8 +50,26 @@ impl<'args> ExprFunctionBuilder<'args> {
     pub fn over() -> Self {
         Self::new("OVER")
     }
+    pub fn array() -> Self {
+        Self::new("ARRAY")
+    }
+    pub fn array_agg() -> Self {
+        Self::new("ARRAY_AGG")
+    }
+    pub fn sum() -> Self {
+        Self::new("SUM")
+    }
+    pub fn avg() -> Self {
+        Self::new("AVG")
+    }
+    pub fn lower() -> Self {
+        Self::new("LOWER")
+    }
+    pub fn upper() -> Self {
+        Self::new("UPPER")
+    }
 }
-impl<'args> ExprType<'args> for ExprFunctionBuilder<'args> {
+impl<'args> ExprType<'args> for SqlFunctionBuilder<'args> {
     fn process(self: Box<Self>, args: &mut ArgumentHolder<'args>) -> Expr
     where
         Self: 'args,
@@ -69,43 +81,16 @@ impl<'args> ExprType<'args> for ExprFunctionBuilder<'args> {
     where
         Self: 'args,
     {
-        let function = ExprFunction {
+        let params = self.params.process_inner_with_seperator(args, ", ");
+
+        let function = SqlFunction {
             function_name: self.function_name,
-            params: self
-                .params
-                .into_iter()
-                .map(|param| param.process(args))
-                .collect(),
+            params: params,
         };
         Expr::Function(function)
     }
 }
-#[derive(Debug, Default)]
-pub struct ExprFunction {
-    function_name: Cow<'static, str>,
-    params: Vec<Expr>,
-}
-impl ExprFunction {
-    pub fn now() -> Self {
-        Self {
-            function_name: "NOW".into(),
-            params: Vec::new(),
-        }
-    }
-}
-
-impl FormatSql for ExprFunction {
-    fn format_sql(&self) -> std::borrow::Cow<'_, str> {
-        let params = self
-            .params
-            .iter()
-            .map(|param| param.format_sql())
-            .collect::<Vec<_>>()
-            .join(", ");
-        Cow::Owned(format!("{}({params})", self.function_name))
-    }
-}
-impl<'args> MultipleExprType<'args> for ExprFunctionBuilder<'args> {
+impl<'args> MultipleExprType<'args> for SqlFunctionBuilder<'args> {
     fn then<E>(self, function: E) -> super::MultipleExprBuilder<'args>
     where
         E: ExprType<'args> + 'args,
@@ -113,76 +98,30 @@ impl<'args> MultipleExprType<'args> for ExprFunctionBuilder<'args> {
         MultipleExprBuilder::with(self).then(function)
     }
 }
-pub trait WrapInFunction<'args>: ExprType<'args> + 'args {
-    fn wrap_in_function(
-        self,
-        function_name: impl Into<Cow<'static, str>>,
-    ) -> ExprFunctionBuilder<'args>
-    where
-        Self: Sized,
-    {
-        ExprFunctionBuilder::new(function_name).add_param(self)
-    }
+#[derive(Debug, Default)]
+pub struct SqlFunction<Params: FormatSql = MultipleExpr> {
+    function_name: Cow<'static, str>,
+    params: Params,
+}
 
-    fn lower(self) -> ExprFunctionBuilder<'args>
-    where
-        Self: Sized,
-    {
-        self.wrap_in_function("LOWER")
-    }
-    fn upper(self) -> ExprFunctionBuilder<'args>
-    where
-        Self: Sized,
-    {
-        self.wrap_in_function("UPPER")
-    }
-    fn count(self) -> ExprFunctionBuilder<'args>
-    where
-        Self: Sized,
-    {
-        self.wrap_in_function("COUNT")
-    }
-    fn sum(self) -> ExprFunctionBuilder<'args>
-    where
-        Self: Sized,
-    {
-        self.wrap_in_function("SUM")
-    }
-    fn avg(self) -> ExprFunctionBuilder<'args>
-    where
-        Self: Sized,
-    {
-        self.wrap_in_function("AVG")
-    }
-    fn array_agg(self) -> ExprFunctionBuilder<'args>
-    where
-        Self: Sized,
-    {
-        self.wrap_in_function("ARRAY_AGG")
-    }
-    fn array(self) -> ExprFunctionBuilder<'args>
-    where
-        Self: Sized,
-    {
-        self.wrap_in_function("ARRAY")
-    }
-    fn any(self) -> ExprFunctionBuilder<'args>
-    where
-        Self: Sized,
-    {
-        self.wrap_in_function("ANY")
+impl<Params: FormatSql> FormatSql for SqlFunction<Params> {
+    fn format_sql(&self) -> std::borrow::Cow<'_, str> {
+        let params = self.params.format_sql();
+        Cow::Owned(format!("{}({params})", self.function_name))
     }
 }
+
 #[cfg(test)]
 mod tests {
-    use crate::{fake::FakeQuery, Aliasable, ExprType, FormatSql, MultipleExprType};
+    use crate::fake::FakeQuery;
+    pub use crate::prelude::*;
 
-    use super::ExprFunctionBuilder;
+    use super::SqlFunctionBuilder;
 
     #[test]
     pub fn many_functions() {
-        let expr = ExprFunctionBuilder::count_all()
-            .then(ExprFunctionBuilder::over())
+        let expr = SqlFunctionBuilder::count_all()
+            .then(SqlFunctionBuilder::over())
             .alias("count_over");
 
         // Code for faking the query

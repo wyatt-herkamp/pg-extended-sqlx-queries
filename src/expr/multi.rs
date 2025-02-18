@@ -1,8 +1,6 @@
 use std::borrow::Cow;
 
-use crate::FormatSql;
-
-use super::{arguments::ArgumentHolder, Aliasable, DynExpr, Expr, ExprType};
+use super::{arguments::ArgumentHolder, many::FormatSql, Aliasable, DynExpr, Expr, ExprType};
 pub trait MultipleExprType<'args>: ExprType<'args> {
     fn then<E>(self, function: E) -> MultipleExprBuilder<'args>
     where
@@ -32,6 +30,30 @@ impl<'args> MultipleExprBuilder<'args> {
     {
         Self::with_capacity(2).then(function)
     }
+    pub fn push<E>(mut self, function: E) -> Self
+    where
+        E: ExprType<'args> + 'args,
+    {
+        self.functions.push(DynExpr::new(function));
+        self
+    }
+    pub(crate) fn process_inner(self, args: &mut ArgumentHolder<'args>) -> MultipleExpr {
+        self.process_inner_with_seperator(args, " ")
+    }
+    pub(crate) fn process_inner_with_seperator(
+        self,
+        args: &mut ArgumentHolder<'args>,
+        seperator: impl Into<Cow<'static, str>>,
+    ) -> MultipleExpr {
+        let exprs = MultipleExpr::with_separator(
+            self.functions
+                .into_iter()
+                .map(|function| function.process_unboxed(args))
+                .collect(),
+            seperator,
+        );
+        exprs
+    }
 }
 impl<'args> MultipleExprType<'args> for MultipleExprBuilder<'args> {
     fn then<E>(mut self, function: E) -> MultipleExprBuilder<'args>
@@ -42,13 +64,34 @@ impl<'args> MultipleExprType<'args> for MultipleExprBuilder<'args> {
         self
     }
 }
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct MultipleExpr {
     functions: Vec<Expr>,
+    seperator: Cow<'static, str>,
+}
+impl Default for MultipleExpr {
+    fn default() -> Self {
+        Self {
+            functions: Vec::new(),
+            seperator: Cow::Borrowed(" "),
+        }
+    }
 }
 impl MultipleExpr {
     pub fn new(functions: Vec<Expr>) -> Self {
-        Self { functions }
+        Self {
+            functions,
+            seperator: Cow::Borrowed(" "),
+        }
+    }
+    pub fn with_separator(functions: Vec<Expr>, seperator: impl Into<Cow<'static, str>>) -> Self {
+        Self {
+            functions,
+            seperator: seperator.into(),
+        }
+    }
+    pub fn set_separator(&mut self, seperator: impl Into<Cow<'static, str>>) {
+        self.seperator = seperator.into();
     }
 }
 impl FormatSql for MultipleExpr {
@@ -58,7 +101,7 @@ impl FormatSql for MultipleExpr {
             .iter()
             .map(|function| function.format_sql())
             .collect::<Vec<_>>()
-            .join(" ");
+            .join(&self.seperator);
         Cow::Owned(functions)
     }
 }
@@ -75,14 +118,8 @@ impl<'args> ExprType<'args> for MultipleExprBuilder<'args> {
     where
         Self: 'args,
     {
-        let functions = MultipleExpr {
-            functions: self
-                .functions
-                .into_iter()
-                .map(|function| function.process_unboxed(args))
-                .collect(),
-        };
-        Expr::Multiple(functions)
+        let exprs = self.process_inner(args);
+        Expr::Multiple(exprs)
     }
 }
 

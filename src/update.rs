@@ -1,11 +1,8 @@
 use std::borrow::Cow;
 
-use crate::arguments::{ArgumentHolder, HasArguments};
 use tracing::{debug, instrument};
 
-use crate::{DynColumn, FormatWhere, FormatWhereItem, Returning, SQLCondition, SupportsReturning};
-
-use super::{ColumnType, Expr, ExprType, FormatSql, FormatSqlQuery, QueryTool, WhereableTool};
+pub use crate::prelude::*;
 
 pub struct UpdateQueryBuilder<'args> {
     table: Cow<'args, str>,
@@ -23,7 +20,7 @@ impl<'args> HasArguments<'args> for UpdateQueryBuilder<'args> {
 }
 
 impl<'args> WhereableTool<'args> for UpdateQueryBuilder<'args> {
-    fn push_where_comparison(&mut self, comparison: crate::SQLCondition) {
+    fn push_where_comparison(&mut self, comparison: SQLCondition) {
         self.where_comparisons.push(comparison);
     }
 }
@@ -89,9 +86,8 @@ mod tests {
     use sqlformat::{FormatOptions, QueryParams};
 
     use crate::{
+        prelude::*,
         testing::{AnotherTable, AnotherTableColumn, TestTable, TestTableColumn},
-        DynEncodeType, ExprFunctionBuilder, ExpressionWhereable, FilterExpr, FormatSqlQuery,
-        SelectExprBuilder, SupportsReturning, TableType, UpdateQueryBuilder, WhereableTool,
     };
 
     #[test]
@@ -107,7 +103,7 @@ mod tests {
                     .column(AnotherTableColumn::Phone)
                     .filter(AnotherTableColumn::Id.equals(1.value())),
             )
-            .set(TestTableColumn::UpdatedAt, ExprFunctionBuilder::now());
+            .set(TestTableColumn::UpdatedAt, SqlFunctionBuilder::now());
         let sql = query.format_sql_query();
         assert_eq!(sql, "UPDATE test_table SET age = $2, email = $3, phone = (SELECT another_table.phone FROM another_table WHERE another_table.id = $4), updated_at = NOW() WHERE test_table.id = $1;");
 
@@ -123,7 +119,7 @@ mod tests {
         query
             .set(TestTableColumn::Age, 19)
             .set(TestTableColumn::Email, "test_ref_value@kingtux.dev")
-            .set(TestTableColumn::UpdatedAt, ExprFunctionBuilder::now())
+            .set(TestTableColumn::UpdatedAt, SqlFunctionBuilder::now())
             .return_all();
         let sql = query.format_sql_query();
         assert_eq!(sql, "UPDATE test_table SET age = $2, email = $3, updated_at = NOW() WHERE test_table.id = $1 RETURNING *;");

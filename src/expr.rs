@@ -13,7 +13,6 @@ mod returning;
 pub use returning::*;
 mod conflict;
 mod other;
-use crate::arguments::ArgumentHolder;
 pub use conflict::*;
 pub use multi::*;
 pub use other::*;
@@ -43,9 +42,7 @@ impl<'args> ExprType<'args> for DynExpr<'args> {
         self.0.process(args)
     }
 }
-use self::arguments::ArgumentIndex;
 
-use super::{ColumnType, DynColumn, FormatSql};
 pub trait ExprType<'args> {
     fn process(self: Box<Self>, args: &mut ArgumentHolder<'args>) -> Expr
     where
@@ -58,7 +55,7 @@ pub trait ExprType<'args> {
 #[derive(Debug)]
 pub enum Expr {
     ArgumentIndex(ArgumentIndex),
-    Function(ExprFunction),
+    Function(SqlFunction),
     Column(DynColumn),
     Condition(Box<SQLCondition>),
     Select(SelectExpr),
@@ -67,21 +64,61 @@ pub enum Expr {
     Default(SqlDefault),
     Multiple(MultipleExpr),
 }
-impl<C> From<C> for Expr
-where
-    C: ColumnType + 'static,
-{
-    fn from(column: C) -> Self {
-        Expr::Column(column.dyn_column())
+impl From<DynColumn> for Expr {
+    fn from(column: DynColumn) -> Self {
+        Expr::Column(column)
     }
 }
+macro_rules! from_expr {
+    (
+        $(
+            $type:ty => $variant:ident
+        ),*
+    ) => {
+        $(
+            impl From<$type> for Expr {
+                fn from(value: $type) -> Self {
+                    Expr::$variant(value)
+                }
+            }
+        )*
+    };
+    (
+        $(
+            Box<$type:ty> => $variant:ident
+        ),*
+    ) => {
+        $(
+            impl From<Box<$type>> for Expr {
+                fn from(value: Box<$type>) -> Self {
+                    Expr::$variant(*value)
+                }
+            }
+            impl From<$type> for Expr {
+                fn from(value: $type) -> Self {
+                    Expr::$variant(value)
+                }
+            }
+        )*
+    };
+}
+from_expr! {
+    ArgumentIndex => ArgumentIndex,
+    SelectExpr => Select,
+    ExprAlias => Alias,
+    All => All,
+    MultipleExpr => Multiple,
+    SqlDefault => Default
+}
+
+from_expr!(Box<SQLCondition> => Condition);
 
 impl FormatSql for Expr {
     fn format_sql(&self) -> Cow<'_, str> {
         match self {
             Expr::ArgumentIndex(index) => index.format_sql(),
             Expr::Function(function) => function.format_sql(),
-            Expr::Column(column) => column.formatted_column(),
+            Expr::Column(column) => column.full_name(),
             Expr::Condition(condition) => condition.format_sql(),
             Expr::Select(select) => select.format_sql(),
             Expr::Alias(alias) => alias.format_sql(),
@@ -89,68 +126,5 @@ impl FormatSql for Expr {
             Expr::Multiple(multiple) => multiple.format_sql(),
             Expr::Default(sql_default) => sql_default.format_sql(),
         }
-    }
-}
-
-#[derive(Debug, Default)]
-pub struct All;
-impl<'args> ExprType<'args> for All {
-    fn process(self: Box<Self>, _: &mut ArgumentHolder<'args>) -> Expr
-    where
-        Self: 'args,
-    {
-        Expr::All(*self)
-    }
-
-    fn process_unboxed(self, _: &mut ArgumentHolder<'args>) -> Expr
-    where
-        Self: 'args,
-    {
-        Expr::All(self)
-    }
-}
-impl All {
-    pub fn new<'args>() -> All {
-        All
-    }
-}
-impl FormatSql for All {
-    fn format_sql(&self) -> Cow<'_, str> {
-        Cow::Borrowed("*")
-    }
-}
-impl From<All> for Expr {
-    fn from(all: All) -> Self {
-        Expr::All(all)
-    }
-}
-#[derive(Debug, Default)]
-
-pub struct SqlDefault;
-impl From<SqlDefault> for Expr {
-    fn from(default: SqlDefault) -> Self {
-        Expr::Default(default)
-    }
-}
-
-impl<'args> ExprType<'args> for SqlDefault {
-    fn process(self: Box<Self>, _: &mut ArgumentHolder<'args>) -> Expr
-    where
-        Self: 'args,
-    {
-        Expr::Default(*self)
-    }
-
-    fn process_unboxed(self, _: &mut ArgumentHolder<'args>) -> Expr
-    where
-        Self: 'args,
-    {
-        Expr::Default(self)
-    }
-}
-
-impl FormatSql for SqlDefault {
-    fn format_sql(&self) -> Cow<'_, str> {
-        Cow::Borrowed("DEFAULT")
     }
 }

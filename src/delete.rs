@@ -1,9 +1,7 @@
+pub use crate::prelude::*;
 use std::borrow::Cow;
 
-use crate::arguments::{ArgumentHolder, HasArguments};
 use tracing::{debug, instrument};
-
-use crate::{FormatSqlQuery, FormatWhere, SQLCondition, WhereableTool};
 
 pub struct DeleteQueryBuilder<'args> {
     table: Cow<'args, str>,
@@ -28,7 +26,7 @@ impl<'args> HasArguments<'args> for DeleteQueryBuilder<'args> {
 }
 
 impl<'args> WhereableTool<'args> for DeleteQueryBuilder<'args> {
-    fn push_where_comparison(&mut self, comparison: crate::SQLCondition) {
+    fn push_where_comparison(&mut self, comparison: SQLCondition) {
         self.where_comparisons.push(comparison);
     }
 }
@@ -56,10 +54,8 @@ impl<'args> FormatSqlQuery for DeleteQueryBuilder<'args> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        testing::{TestTable, TestTableColumn},
-        DynEncodeType, FilterExpr, TableType, WhereableTool,
-    };
+
+    use crate::testing::{TestTable, TestTableColumn};
 
     #[test]
     fn test_delete_query_builder() {

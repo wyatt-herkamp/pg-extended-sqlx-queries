@@ -8,5 +8,7 @@ pub fn ident_to_upper_camel(ident: &syn::Ident) -> syn::Ident {
 pub mod keywords {
     syn::custom_keyword!(name);
     syn::custom_keyword!(skip);
-    syn::custom_keyword!(enum_ident);
+    syn::custom_keyword!(column_variant_name);
+    syn::custom_keyword!(column_enum_name);
+    syn::custom_keyword!(impl_expr);
 }

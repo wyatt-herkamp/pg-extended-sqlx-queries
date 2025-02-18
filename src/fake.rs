@@ -5,9 +5,10 @@
 //! This is NOT STABLE API and any usage will break at any time
 
 use crate::{
-    arguments::{ArgumentHolder, HasArguments},
-    FormatWhere, SQLCondition, WhereableTool,
+    expr::{ArgumentHolder, HasArguments, SQLCondition},
+    traits::{FormatWhere, WhereableTool},
 };
+
 /// A utility struct for testing different SQL Queries
 pub struct FakeQuery<'args> {
     pub arguments: ArgumentHolder<'args>,

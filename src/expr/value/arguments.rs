@@ -2,6 +2,8 @@ use std::borrow::Cow;
 
 use sqlx::{postgres::PgArguments, Arguments, Database, Postgres};
 
+use crate::delete::FormatSql;
+
 /// A sql tool that has [Arguments](sqlx::Arguments) that can be used to build a query.
 ///
 /// Arguments being the values that will be used to fill in the placeholders in the query.
@@ -15,7 +17,6 @@ pub trait HasArguments<'args> {
     fn holder(&mut self) -> &mut ArgumentHolder<'args>;
 }
 
-use crate::FormatSql;
 pub struct ArgumentHolder<'args> {
     arguments: Option<<Postgres as Database>::Arguments<'args>>,
 }

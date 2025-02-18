@@ -34,6 +34,6 @@ mod tests {
     #[test]
     fn test_table_columns() {
         assert!(TestTableColumn::Id.column_name() == "id");
-        assert!(TestTableColumn::Id.formatted_column() == "test_table.id");
+        assert!(TestTableColumn::Id.full_name() == "test_table.id");
     }
 }

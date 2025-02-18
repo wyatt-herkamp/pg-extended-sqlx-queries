@@ -1,6 +1,4 @@
-use crate::arguments::{ArgumentHolder, HasArguments};
-
-use crate::{FormatSqlQuery, FormatWhere, QueryScalarTool, QueryTool, SQLCondition, WhereableTool};
+pub use crate::prelude::*;
 
 pub struct SelectExists<'args> {
     table: &'static str,
@@ -9,7 +7,7 @@ pub struct SelectExists<'args> {
     arguments: ArgumentHolder<'args>,
 }
 impl<'args> WhereableTool<'args> for SelectExists<'args> {
-    fn push_where_comparison(&mut self, comparison: crate::SQLCondition) {
+    fn push_where_comparison(&mut self, comparison: SQLCondition) {
         self.where_comparisons.push(comparison);
     }
 }
@@ -56,12 +54,9 @@ impl FormatSqlQuery for SelectExists<'_> {
 }
 #[cfg(test)]
 mod tests {
+    pub use crate::prelude::*;
+    use crate::testing::{TestTable, TestTableColumn};
     use sqlformat::{FormatOptions, QueryParams};
-
-    use crate::{
-        testing::{TestTable, TestTableColumn},
-        DynEncodeType, FilterExpr, FormatSqlQuery, SelectExists, TableType, WhereableTool,
-    };
 
     #[test]
     pub fn someone_who_is_50() {

@@ -1,7 +1,8 @@
 use std::borrow::Cow;
 
-use crate::arguments::HasArguments;
-use crate::{AndOr, Expr, ExprType, FilterConditionBuilder, FormatSql, SQLCondition};
+use crate::expr::{Expr, ExprType, HasArguments, SQLCondition};
+
+use super::{AndOr, FilterConditionBuilder, FormatSql};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum JoinType {

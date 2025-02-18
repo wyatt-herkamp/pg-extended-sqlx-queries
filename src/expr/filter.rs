@@ -1,8 +1,7 @@
 use std::marker::PhantomData;
 mod builder;
-use crate::{AndOr, FormatSql, SQLComparison};
 
-use super::{arguments::ArgumentHolder, DynExpr, Expr, ExprType};
+use super::{arguments::ArgumentHolder, AndOr, DynExpr, Expr, ExprType, FormatSql, SQLComparison};
 mod expr;
 use builder::FilterConditionBuilderInner;
 pub use expr::*;
@@ -74,18 +73,18 @@ impl<'args, L: ExprType<'args> + 'args, R: ExprType<'args> + 'args>
 impl<'args, L: ExprType<'args> + 'args, R: ExprType<'args> + 'args> ExprType<'args>
     for FilterConditionBuilder<'args, L, R>
 {
-    fn process(self: Box<Self>, args: &mut crate::arguments::ArgumentHolder<'args>) -> crate::Expr
+    fn process(self: Box<Self>, args: &mut ArgumentHolder<'args>) -> Expr
     where
         Self: 'args,
     {
         self.process_unboxed(args)
     }
 
-    fn process_unboxed(self, args: &mut crate::arguments::ArgumentHolder<'args>) -> crate::Expr
+    fn process_unboxed(self, args: &mut ArgumentHolder<'args>) -> Expr
     where
         Self: 'args,
     {
-        crate::Expr::Condition(Box::new(self.process_inner(args)))
+        Expr::Condition(Box::new(self.process_inner(args)))
     }
 }
 #[derive(Debug)]

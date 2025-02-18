@@ -1,11 +1,14 @@
-use crate::arguments::{ArgumentHolder, HasArguments};
 use std::fmt::Debug;
 
 use crate::{
-    ColumnType, DynColumn, Expr, ExprType, FormatSql, FormatSqlQuery, OnConflict, QueryTool,
-    Returning, SupportsReturning,
+    expr::{
+        ArgumentHolder, ConflictQuery, Expr, ExprType, HasArguments, OnConflict, Returning, SupportsReturning,
+    },
+    prelude::{ColumnType, DynColumn},
+    table_layout::concat_columns_no_table_name,
+    traits::{FormatSqlQuery, QueryTool},
 };
-
+use many::FormatSql;
 use tracing::{debug, instrument};
 pub mod many;
 pub struct InsertQueryBuilder<'args> {
@@ -28,6 +31,12 @@ impl Debug for InsertQueryBuilder<'_> {
             .finish()
     }
 }
+impl<'args> ConflictQuery<'args> for InsertQueryBuilder<'args> {
+    fn set_on_conflict(&mut self, on_conflict: OnConflict) -> &mut Self {
+        self.on_conflict = Some(on_conflict);
+        self
+    }
+}
 impl<'args> InsertQueryBuilder<'args> {
     pub fn new(table: &'static str) -> Self {
         Self {
@@ -40,10 +49,7 @@ impl<'args> InsertQueryBuilder<'args> {
             returning: Default::default(),
         }
     }
-    pub fn set_on_conflict(&mut self, on_conflict: OnConflict) -> &mut Self {
-        self.on_conflict = Some(on_conflict);
-        self
-    }
+
     /// Insert a value into the query
     pub fn insert<C, E>(&mut self, column: C, value: E) -> &mut Self
     where
@@ -88,7 +94,7 @@ impl SupportsReturning for InsertQueryBuilder<'_> {
 impl FormatSqlQuery for InsertQueryBuilder<'_> {
     #[instrument(skip(self), fields(table = %self.table, statement.type = "INSERT"))]
     fn format_sql_query(&mut self) -> &str {
-        let columns = super::concat_columns_no_table_name(&self.columns);
+        let columns = concat_columns_no_table_name(&self.columns);
         let values = self
             .insert
             .iter()
@@ -118,9 +124,8 @@ mod tests {
     use sqlformat::QueryParams;
 
     use crate::{
+        prelude::*,
         testing::{AnotherTable, AnotherTableColumn, TestTable, TestTableColumn},
-        DynEncode, DynEncodeType, ExprFunctionBuilder, ExpressionWhereable, FilterExpr,
-        FormatSqlQuery, SelectExprBuilder, TableType,
     };
 
     #[test]
@@ -148,7 +153,7 @@ mod tests {
         builder
             .insert(TestTableColumn::LastName, "Doe".value())
             .insert(TestTableColumn::FirstName, "John".value())
-            .insert(TestTableColumn::CreatedAt, ExprFunctionBuilder::now());
+            .insert(TestTableColumn::CreatedAt, SqlFunctionBuilder::now());
 
         let sql = builder.format_sql_query();
         assert_eq!(
@@ -177,5 +182,40 @@ mod tests {
         );
         let formatted = sqlformat::format(sql, &QueryParams::default(), &Default::default());
         println!("{}", formatted);
+    }
+
+    #[test]
+    pub fn on_conflict_do_nothing() {
+        let mut builder = super::InsertQueryBuilder::new(TestTable::table_name());
+        builder
+            .insert(TestTableColumn::LastName, "Doe".value())
+            .insert(TestTableColumn::FirstName, "John".value())
+            .on_conflict_do_nothing(ConflictTarget::columns(vec![TestTableColumn::LastName]));
+
+        let sql = builder.format_sql_query();
+        assert_eq!(
+            sql,
+            "INSERT INTO test_table (last_name, first_name) VALUES ($1, $2) ON CONFLICT (last_name) DO NOTHING;"
+        );
+        println!("{}", sql);
+    }
+
+    #[test]
+    pub fn on_conflict_update() {
+        let mut builder = super::InsertQueryBuilder::new(TestTable::table_name());
+        builder
+            .insert(TestTableColumn::LastName, "Doe".value())
+            .insert(TestTableColumn::FirstName, "John".value())
+            .on_conflict_set_excluded(
+                ConflictTarget::columns(vec![TestTableColumn::LastName]),
+                vec![TestTableColumn::FirstName, TestTableColumn::Phone],
+            );
+
+        let sql = builder.format_sql_query();
+        assert_eq!(
+            sql,
+            "INSERT INTO test_table (last_name, first_name) VALUES ($1, $2) ON CONFLICT (last_name) DO UPDATE SET first_name = EXCLUDED.first_name, phone = EXCLUDED.phone;"
+        );
+        println!("{}", sql);
     }
 }

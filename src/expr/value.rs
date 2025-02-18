@@ -1,8 +1,8 @@
 //! ExprType for values
 use super::{Expr, ExprType, WrapInFunction};
-use crate::arguments::ArgumentHolder;
 use sqlx::{postgres::PgTypeInfo, Encode, Postgres, Type};
 pub mod arguments;
+pub use arguments::*;
 pub trait DynEncodeType<'args> {
     fn value(self) -> DynEncode<'args>;
 }
@@ -88,15 +88,15 @@ macro_rules! value_expr_type {
         ),*
     ) => {
         $(
-            impl<'args, $bound: $bound_param> $crate::ExprType<'args> for $ty {
-                fn process(self: Box<Self>, args: &mut ArgumentHolder<'args>) -> $crate::Expr
+            impl<'args, $bound: $bound_param> ExprType<'args> for $ty {
+                fn process(self: Box<Self>, args: &mut ArgumentHolder<'args>) -> Expr
                 where
                     Self: 'args,
                 {
                     Expr::ArgumentIndex(args.push_argument(*self))
                 }
 
-                fn process_unboxed(self, args: &mut ArgumentHolder<'args>) -> $crate::Expr
+                fn process_unboxed(self, args: &mut ArgumentHolder<'args>) -> Expr
                 where
                     Self: 'args,
                 {
@@ -104,14 +104,14 @@ macro_rules! value_expr_type {
                 }
             }
             impl<'args, $bound: $bound_param> ExprType<'args> for Option<$ty> {
-                fn process(self: Box<Self>, args: &mut ArgumentHolder<'args>) -> $crate::Expr
+                fn process(self: Box<Self>, args: &mut ArgumentHolder<'args>) -> Expr
                 where
                     Self: 'args,
                 {
                     Expr::ArgumentIndex(args.push_argument(*self))
                 }
 
-                fn process_unboxed(self, args: &mut ArgumentHolder<'args>) -> $crate::Expr
+                fn process_unboxed(self, args: &mut ArgumentHolder<'args>) -> Expr
                 where
                     Self: 'args,
                 {
@@ -119,23 +119,23 @@ macro_rules! value_expr_type {
                 }
             }
             impl<'args, $bound: $bound_param> ExprType<'args> for Vec<$ty> {
-                fn process(self: Box<Self>, args: &mut ArgumentHolder<'args>) -> $crate::Expr
+                fn process(self: Box<Self>, args: &mut ArgumentHolder<'args>) -> Expr
                 where
                     Self: 'args,
                 {
                     Expr::ArgumentIndex(args.push_argument(*self))
                 }
 
-                fn process_unboxed(self, args: &mut ArgumentHolder<'args>) -> $crate::Expr
+                fn process_unboxed(self, args: &mut ArgumentHolder<'args>) -> Expr
                 where
                     Self: 'args,
                 {
                     Expr::ArgumentIndex(args.push_argument(self))
                 }
             }
-            impl<'args, $bound: $bound_param + 'args> $crate::WrapInFunction<'args> for $ty {}
-            impl<'args, $bound: $bound_param + 'args> $crate::WrapInFunction<'args> for Option<$ty> {}
-            impl<'args, $bound: $bound_param + 'args> $crate::WrapInFunction<'args> for Vec<$ty> {}
+            impl<'args, $bound: $bound_param + 'args> WrapInFunction<'args> for $ty {}
+            impl<'args, $bound: $bound_param + 'args> WrapInFunction<'args> for Option<$ty> {}
+            impl<'args, $bound: $bound_param + 'args> WrapInFunction<'args> for Vec<$ty> {}
 
 
         )*
@@ -146,15 +146,15 @@ macro_rules! value_expr_type {
         ),*
     ) => {
         $(
-            impl<'args> $crate::ExprType<'args> for $ty {
-                fn process(self: Box<Self>, args: &mut ArgumentHolder<'args>) -> $crate::Expr
+            impl<'args> ExprType<'args> for $ty {
+                fn process(self: Box<Self>, args: &mut ArgumentHolder<'args>) -> Expr
                 where
                     Self: 'args,
                 {
                     Expr::ArgumentIndex(args.push_argument(*self))
                 }
 
-                fn process_unboxed(self, args: &mut ArgumentHolder<'args>) -> $crate::Expr
+                fn process_unboxed(self, args: &mut ArgumentHolder<'args>) -> Expr
                 where
                     Self: 'args,
                 {
@@ -162,14 +162,14 @@ macro_rules! value_expr_type {
                 }
             }
             impl<'args> ExprType<'args> for Option<$ty> {
-                fn process(self: Box<Self>, args: &mut ArgumentHolder<'args>) -> $crate::Expr
+                fn process(self: Box<Self>, args: &mut ArgumentHolder<'args>) -> Expr
                 where
                     Self: 'args,
                 {
                     Expr::ArgumentIndex(args.push_argument(*self))
                 }
 
-                fn process_unboxed(self, args: &mut ArgumentHolder<'args>) -> $crate::Expr
+                fn process_unboxed(self, args: &mut ArgumentHolder<'args>) -> Expr
                 where
                     Self: 'args,
                 {
@@ -177,23 +177,23 @@ macro_rules! value_expr_type {
                 }
             }
             impl<'args> ExprType<'args> for Vec<$ty> {
-                fn process(self: Box<Self>, args: &mut ArgumentHolder<'args>) -> $crate::Expr
+                fn process(self: Box<Self>, args: &mut ArgumentHolder<'args>) -> Expr
                 where
                     Self: 'args,
                 {
                     Expr::ArgumentIndex(args.push_argument(*self))
                 }
 
-                fn process_unboxed(self, args: &mut ArgumentHolder<'args>) -> $crate::Expr
+                fn process_unboxed(self, args: &mut ArgumentHolder<'args>) -> Expr
                 where
                     Self: 'args,
                 {
                     Expr::ArgumentIndex(args.push_argument(self))
                 }
             }
-            impl<'args> $crate::WrapInFunction<'args> for $ty {}
-            impl<'args> $crate::WrapInFunction<'args> for Option<$ty> {}
-            impl<'args> $crate::WrapInFunction<'args> for Vec<$ty> {}
+            impl<'args> WrapInFunction<'args> for $ty {}
+            impl<'args> WrapInFunction<'args> for Option<$ty> {}
+            impl<'args> WrapInFunction<'args> for Vec<$ty> {}
 
         )*
     };

@@ -1,4 +1,4 @@
-use crate::{ExprType, SQLComparison};
+use crate::expr::{ExprType, SQLComparison};
 
 use super::{FilterConditionBuilder, FilterConditionBuilderInner, OneSidedFilterConditionExprType};
 macro_rules! compairson {

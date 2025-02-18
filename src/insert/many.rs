@@ -1,15 +1,11 @@
 use std::fmt::Debug;
 
-use crate::{
-    arguments::{ArgumentHolder, HasArguments},
-    concat_columns_no_table_name, ColumnType, FormatSql, FormatSqlQuery, OnConflict, QueryTool,
-    SupportsReturning,
-};
+pub use crate::prelude::*;
+use crate::table_layout::concat_columns_no_table_name;
+
 mod row;
 pub use row::*;
 use tracing::{debug, instrument};
-
-use super::Returning;
 
 pub struct InsertManyBuilder<'args, C: ColumnType> {
     columns_to_insert: Vec<C>,
@@ -19,6 +15,12 @@ pub struct InsertManyBuilder<'args, C: ColumnType> {
     table: &'static str,
     arguments: ArgumentHolder<'args>,
     on_conflict: Option<OnConflict>,
+}
+impl<'args, C: ColumnType> ConflictQuery<'args> for InsertManyBuilder<'args, C> {
+    fn set_on_conflict(&mut self, on_conflict: OnConflict) -> &mut Self {
+        self.on_conflict = Some(on_conflict);
+        self
+    }
 }
 impl<'args, C> HasArguments<'args> for InsertManyBuilder<'args, C>
 where
@@ -53,10 +55,6 @@ impl<'args, C: ColumnType> InsertManyBuilder<'args, C> {
             returning: Default::default(),
             on_conflict: None,
         }
-    }
-    pub fn set_on_conflict(&mut self, on_conflict: OnConflict) -> &mut Self {
-        self.on_conflict = Some(on_conflict);
-        self
     }
 
     /// Insert a value into the query
@@ -127,8 +125,8 @@ mod tests {
     use sqlformat::QueryParams;
 
     use crate::{
+        prelude::*,
         testing::{TestTable, TestTableColumn},
-        DynEncodeType, FormatSqlQuery, SupportsReturning, TableQuery, TableType,
     };
 
     #[test]

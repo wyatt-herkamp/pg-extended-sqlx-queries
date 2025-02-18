@@ -2,7 +2,7 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{
     parse::{Parse, ParseStream},
-    Field, Ident, LitStr, Result,
+    Field, Ident, LitBool, LitStr, Result,
 };
 
 use crate::utils::ident_to_upper_camel;
@@ -32,8 +32,8 @@ impl Parse for ColumnAttribute {
                 let _: keywords::name = input.parse()?;
                 let _: syn::Token![=] = input.parse()?;
                 column_name = Some(input.parse()?);
-            } else if lookahead.peek(keywords::enum_ident) {
-                let _: keywords::enum_ident = input.parse()?;
+            } else if lookahead.peek(keywords::column_variant_name) {
+                let _: keywords::column_variant_name = input.parse()?;
                 let _: syn::Token![=] = input.parse()?;
                 enum_variant = Some(input.parse()?);
             } else if lookahead.peek(keywords::skip) {
@@ -111,8 +111,10 @@ impl ColumnField {
     pub fn formatted_column(&self, table_name: &LitStr) -> TokenStream {
         let ident = &self.ident_as_upper_camel;
         let name = &self.name;
+        let full_name = format!("{}.{}", table_name.value(), name.value());
+        let full_name_lit = LitStr::new(full_name.as_str(), name.span());
         quote! {
-            Self::#ident => std::borrow::Cow::Borrowed(concat!(#table_name,".", #name))
+            Self::#ident => std::borrow::Cow::Borrowed(#full_name_lit)
         }
     }
     pub fn display_match_arm(&self) -> TokenStream {
@@ -134,5 +136,44 @@ impl ColumnField {
         quote! {
             Self::#ident
         }
+    }
+}
+
+pub struct ColumnTypeAttribute {
+    /// By Default true, if set to false, the column type will not implement ExprType
+    pub impl_expr: bool,
+    /// By default the column enum will be named {Ident}Column, if set, it will be named as the given ident
+    pub enum_ident: Option<syn::Ident>,
+}
+impl Default for ColumnTypeAttribute {
+    fn default() -> Self {
+        Self {
+            impl_expr: true,
+            enum_ident: None,
+        }
+    }
+}
+impl Parse for ColumnTypeAttribute {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let mut impl_expr: Option<LitBool> = Option::default();
+        let mut enum_ident = None;
+        while !input.is_empty() {
+            let lookahead = input.lookahead1();
+            if lookahead.peek(keywords::impl_expr) {
+                let _: keywords::impl_expr = input.parse()?;
+                let _: syn::Token![=] = input.parse()?;
+                impl_expr = Some(input.parse()?);
+            } else if lookahead.peek(keywords::column_enum_name) {
+                let _: keywords::column_enum_name = input.parse()?;
+                let _: syn::Token![=] = input.parse()?;
+                enum_ident = Some(input.parse()?);
+            } else {
+                return Err(lookahead.error());
+            }
+        }
+        Ok(Self {
+            impl_expr: impl_expr.map_or(true, |lit| lit.value),
+            enum_ident,
+        })
     }
 }
