@@ -31,6 +31,7 @@ pub mod prelude {
 
     pub use crate::expr::*;
     pub use crate::insert::{many::*, InsertQueryBuilder};
+    pub use crate::pagination::*;
     pub use crate::select::*;
     pub use crate::table_layout::{AllColumns, ColumnType, DynColumn, TableQuery, TableType};
     pub use crate::traits::*;
