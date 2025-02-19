@@ -1,5 +1,6 @@
 //! ExprType for values
 use super::{Expr, ExprType, WrapInFunction};
+use pg_extended_sqlx_queries_macros::value_expr_type;
 use sqlx::{postgres::PgTypeInfo, Encode, Postgres, Type};
 pub mod arguments;
 pub use arguments::*;
@@ -78,127 +79,6 @@ impl<'args> ExprType<'args> for DynEncode<'args> {
     }
 }
 
-/// Implements [ExprType] for the given types to be used as values in SQL expressions.
-///
-/// This can be helpful to prevent some of the boilerplate of writing the queries also allows for a little less dyn invoking.
-macro_rules! value_expr_type {
-    (
-        $(
-            $ty:ty: where $bound:ident: $bound_param:path
-        ),*
-    ) => {
-        $(
-            impl<'args, $bound: $bound_param> ExprType<'args> for $ty {
-                fn process(self: Box<Self>, args: &mut ArgumentHolder<'args>) -> Expr
-                where
-                    Self: 'args,
-                {
-                    Expr::ArgumentIndex(args.push_argument(*self))
-                }
-
-                fn process_unboxed(self, args: &mut ArgumentHolder<'args>) -> Expr
-                where
-                    Self: 'args,
-                {
-                    Expr::ArgumentIndex(args.push_argument(self))
-                }
-            }
-            impl<'args, $bound: $bound_param> ExprType<'args> for Option<$ty> {
-                fn process(self: Box<Self>, args: &mut ArgumentHolder<'args>) -> Expr
-                where
-                    Self: 'args,
-                {
-                    Expr::ArgumentIndex(args.push_argument(*self))
-                }
-
-                fn process_unboxed(self, args: &mut ArgumentHolder<'args>) -> Expr
-                where
-                    Self: 'args,
-                {
-                    Expr::ArgumentIndex(args.push_argument(self))
-                }
-            }
-            impl<'args, $bound: $bound_param> ExprType<'args> for Vec<$ty> {
-                fn process(self: Box<Self>, args: &mut ArgumentHolder<'args>) -> Expr
-                where
-                    Self: 'args,
-                {
-                    Expr::ArgumentIndex(args.push_argument(*self))
-                }
-
-                fn process_unboxed(self, args: &mut ArgumentHolder<'args>) -> Expr
-                where
-                    Self: 'args,
-                {
-                    Expr::ArgumentIndex(args.push_argument(self))
-                }
-            }
-            impl<'args, $bound: $bound_param + 'args> WrapInFunction<'args> for $ty {}
-            impl<'args, $bound: $bound_param + 'args> WrapInFunction<'args> for Option<$ty> {}
-            impl<'args, $bound: $bound_param + 'args> WrapInFunction<'args> for Vec<$ty> {}
-
-
-        )*
-    };
-    (
-        $(
-            $ty:ty
-        ),*
-    ) => {
-        $(
-            impl<'args> ExprType<'args> for $ty {
-                fn process(self: Box<Self>, args: &mut ArgumentHolder<'args>) -> Expr
-                where
-                    Self: 'args,
-                {
-                    Expr::ArgumentIndex(args.push_argument(*self))
-                }
-
-                fn process_unboxed(self, args: &mut ArgumentHolder<'args>) -> Expr
-                where
-                    Self: 'args,
-                {
-                    Expr::ArgumentIndex(args.push_argument(self))
-                }
-            }
-            impl<'args> ExprType<'args> for Option<$ty> {
-                fn process(self: Box<Self>, args: &mut ArgumentHolder<'args>) -> Expr
-                where
-                    Self: 'args,
-                {
-                    Expr::ArgumentIndex(args.push_argument(*self))
-                }
-
-                fn process_unboxed(self, args: &mut ArgumentHolder<'args>) -> Expr
-                where
-                    Self: 'args,
-                {
-                    Expr::ArgumentIndex(args.push_argument(self))
-                }
-            }
-            impl<'args> ExprType<'args> for Vec<$ty> {
-                fn process(self: Box<Self>, args: &mut ArgumentHolder<'args>) -> Expr
-                where
-                    Self: 'args,
-                {
-                    Expr::ArgumentIndex(args.push_argument(*self))
-                }
-
-                fn process_unboxed(self, args: &mut ArgumentHolder<'args>) -> Expr
-                where
-                    Self: 'args,
-                {
-                    Expr::ArgumentIndex(args.push_argument(self))
-                }
-            }
-            impl<'args> WrapInFunction<'args> for $ty {}
-            impl<'args> WrapInFunction<'args> for Option<$ty> {}
-            impl<'args> WrapInFunction<'args> for Vec<$ty> {}
-
-        )*
-    };
-
-}
 // Standard Library types
 value_expr_type!(
     bool,
@@ -214,12 +94,12 @@ value_expr_type!(
     &'args [u8]
 );
 #[cfg(feature = "chrono")]
-value_expr_type!(chrono::NaiveDateTime, chrono::NaiveTime, chrono::NaiveDate);
+value_expr_type!(chrono::NaiveDateTime, chrono::NaiveTime, chrono::NaiveDate,);
 #[cfg(feature = "chrono")]
-value_expr_type!(chrono::DateTime<Tz>: where Tz: chrono::TimeZone);
+value_expr_type!(chrono::DateTime<Tz>: where Tz: chrono::TimeZone  + 'args);
 
 #[cfg(feature = "uuid")]
 value_expr_type!(uuid::Uuid);
 
 #[cfg(feature = "json")]
-value_expr_type!(sqlx::types::Json<T>: where T: serde::Serialize);
+value_expr_type!(sqlx::types::Json<T>: where T: serde::Serialize + 'args);
