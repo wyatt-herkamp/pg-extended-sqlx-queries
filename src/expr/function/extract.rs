@@ -6,6 +6,7 @@ use crate::{
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ExtractType {
     Month,
+    Week,
     Day,
     Year,
     Century,
@@ -34,6 +35,7 @@ impl FormatSql for ExtractType {
     fn format_sql(&self) -> std::borrow::Cow<'_, str> {
         match self {
             ExtractType::Month => std::borrow::Cow::Borrowed("MONTH"),
+            ExtractType::Week => std::borrow::Cow::Borrowed("WEEK"),
             ExtractType::Day => std::borrow::Cow::Borrowed("DAY"),
             ExtractType::Year => std::borrow::Cow::Borrowed("YEAR"),
             ExtractType::Century => std::borrow::Cow::Borrowed("CENTURY"),
