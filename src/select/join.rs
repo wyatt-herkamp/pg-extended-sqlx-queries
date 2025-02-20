@@ -10,6 +10,9 @@ pub enum JoinType {
     Left,
     Right,
     Full,
+    FullOuter,
+    LeftOuter,
+    RightOuter,
 }
 impl FormatSql for JoinType {
     fn format_sql(&self) -> std::borrow::Cow<'_, str> {
@@ -18,6 +21,9 @@ impl FormatSql for JoinType {
             JoinType::Left => "LEFT JOIN".into(),
             JoinType::Right => "RIGHT JOIN".into(),
             JoinType::Full => "FULL JOIN".into(),
+            JoinType::LeftOuter => "LEFT OUTER JOIN".into(),
+            JoinType::RightOuter => "RIGHT OUTER JOIN".into(),
+            JoinType::FullOuter => "FULL OUTER JOIN".into(),
         }
     }
 }
