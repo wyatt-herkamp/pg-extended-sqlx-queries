@@ -39,4 +39,5 @@ pub mod prelude {
 
     pub use crate::update::UpdateQueryBuilder;
     pub use pg_extended_sqlx_queries_macros::TableType;
+    pub use pg_extended_sqlx_queries_macros::ValueExprType;
 }
