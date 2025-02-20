@@ -1,7 +1,10 @@
 //! ExprType for values
 use super::{Expr, ExprType, WrapInFunction};
 use pg_extended_sqlx_queries_macros::value_expr_type;
-use sqlx::{postgres::PgTypeInfo, Encode, Postgres, Type};
+use sqlx::{
+    postgres::{PgHasArrayType, PgTypeInfo},
+    Encode, Postgres, Type,
+};
 pub mod arguments;
 pub use arguments::*;
 pub trait DynEncodeType<'args> {
@@ -77,6 +80,50 @@ impl<'args> ExprType<'args> for DynEncode<'args> {
         let index = args.push_argument(self);
         Expr::ArgumentIndex(index)
     }
+}
+impl<'args, T> ExprType<'args> for Option<T>
+where
+    T: 'args + ExprType<'args> + Encode<'args, Postgres> + Type<Postgres>,
+{
+    fn process(self: Box<Self>, args: &mut ArgumentHolder<'args>) -> Expr
+    where
+        Self: 'args,
+    {
+        args.push_argument(*self).into()
+    }
+
+    fn process_unboxed(self, args: &mut ArgumentHolder<'args>) -> Expr
+    where
+        Self: 'args,
+    {
+        args.push_argument(self).into()
+    }
+}
+impl<'args, T> WrapInFunction<'args> for Option<T> where
+    T: 'args + Encode<'args, Postgres> + Type<Postgres> + WrapInFunction<'args>
+{
+}
+impl<'args, T> ExprType<'args> for Vec<T>
+where
+    T: 'args + ExprType<'args> + Encode<'args, Postgres> + Type<Postgres> + PgHasArrayType,
+{
+    fn process(self: Box<Self>, args: &mut ArgumentHolder<'args>) -> Expr
+    where
+        Self: 'args,
+    {
+        args.push_argument(*self).into()
+    }
+
+    fn process_unboxed(self, args: &mut ArgumentHolder<'args>) -> Expr
+    where
+        Self: 'args,
+    {
+        args.push_argument(self).into()
+    }
+}
+impl<'args, T> WrapInFunction<'args> for Vec<T> where
+    T: 'args + Encode<'args, Postgres> + Type<Postgres> + WrapInFunction<'args> + PgHasArrayType
+{
 }
 
 // Standard Library types

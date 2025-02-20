@@ -20,6 +20,7 @@ pub mod update;
 /// }
 /// ```
 pub use pg_extended_sqlx_queries_macros::TableType;
+pub use pg_extended_sqlx_queries_macros::ValueExprType;
 use prelude::ColumnType;
 
 #[cfg(test)]

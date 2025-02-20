@@ -1,9 +1,10 @@
 use proc_macro2::TokenStream;
-use quote::quote;
+use quote::{quote, ToTokens};
 use syn::{
     parse::{Parse, ParseStream, Result},
     Token,
 };
+pub mod derive;
 #[derive(Debug)]
 pub struct ValueExprType {
     pub type_to_implement: syn::Type,
@@ -11,6 +12,14 @@ pub struct ValueExprType {
 }
 impl ValueExprType {
     pub fn expand(&self) -> Result<proc_macro2::TokenStream> {
+        let result = quote! {
+                #self
+        };
+        Ok(result)
+    }
+}
+impl ToTokens for ValueExprType {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
         let impl_part = if let Some(where_clause) = &self.where_clause {
             let mut generic_names = Vec::new();
             for predicate in &where_clause.predicates {
@@ -22,11 +31,11 @@ impl ValueExprType {
                 }
             }
             quote! {
-                impl<'args, #(#generic_names),*>
+                <'args, #(#generic_names),*>
             }
         } else {
             quote! {
-                impl<'args>
+                <'args>
             }
         };
         let where_clause_tokens = self
@@ -39,21 +48,13 @@ impl ValueExprType {
             .unwrap_or(quote! {});
         let type_to_implement = &self.type_to_implement;
         let base_type = quote! { #type_to_implement };
-        let option_type = quote! { Option<#type_to_implement> };
-        let vec_type = quote! { Vec<#type_to_implement> };
         let ref_type = quote! { &'args #type_to_implement };
 
         let impl_base = expanded(&impl_part, &base_type, &where_clause_tokens);
-        let impl_option = expanded(&impl_part, &option_type, &where_clause_tokens);
-        let impl_vec = expanded(&impl_part, &vec_type, &where_clause_tokens);
         let impl_ref = expanded(&impl_part, &ref_type, &where_clause_tokens);
-        let result = quote! {
-                #impl_base
-                #impl_option
-                #impl_vec
-                #impl_ref
-        };
-        Ok(result)
+        tokens.extend(impl_base);
+
+        tokens.extend(impl_ref);
     }
 }
 
@@ -63,7 +64,7 @@ fn expanded(
     where_clause_tokens: &TokenStream,
 ) -> TokenStream {
     let result = quote! {
-            #impl_part ExprType<'args> for #type_to_implement #where_clause_tokens{
+            impl #impl_part ExprType<'args> for #type_to_implement #where_clause_tokens{
                 fn process(self: Box<Self>, args: &mut ArgumentHolder<'args>) -> Expr
                 where
                     Self: 'args,
@@ -78,7 +79,7 @@ fn expanded(
                     Expr::ArgumentIndex(args.push_argument(self))
                 }
             }
-            #impl_part WrapInFunction<'args> for #type_to_implement #where_clause_tokens {}
+            impl #impl_part WrapInFunction<'args> for #type_to_implement #where_clause_tokens {}
 
     };
     result

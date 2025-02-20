@@ -1,5 +1,6 @@
 use chrono::{DateTime, FixedOffset};
-use pg_extended_sqlx_queries::prelude::*;
+use pg_extended_sqlx_queries::{prelude::*, ValueExprType};
+use sqlx::prelude::Type;
 
 #[derive(Debug, Clone, TableType)]
 #[table(name = "test_table")]
@@ -42,4 +43,9 @@ pub struct CustomColumnName {
     pub another_table_id: Option<i32>,
     pub updated_at: DateTime<FixedOffset>,
     pub created_at: DateTime<FixedOffset>,
+}
+#[derive(Type, ValueExprType)]
+pub enum SqlxTypeTest {
+    Variant1,
+    Variant2,
 }

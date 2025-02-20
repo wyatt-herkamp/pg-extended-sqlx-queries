@@ -27,6 +27,10 @@ serde = { version = "1", optional = true }
 [dev-dependencies]
 chrono = { version = "0.4", features = ["serde"] }
 sqlformat = "0.3"
+sqlx = { version = "0.8", features = [
+    "postgres",
+    "macros",
+], default-features = false }
 
 [features]
 default = ["format"]

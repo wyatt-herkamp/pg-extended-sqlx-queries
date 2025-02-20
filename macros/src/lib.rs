@@ -22,6 +22,15 @@ pub fn table_type(item: TokenStream) -> TokenStream {
         Err(err) => err.to_compile_error().into(),
     }
 }
+#[proc_macro_derive(ValueExprType)]
+pub fn derive_value_expr_type(item: TokenStream) -> TokenStream {
+    let input = syn::parse_macro_input!(item as syn::DeriveInput);
+
+    match value_expr_type::derive::expand(input) {
+        Ok(result) => result.into(),
+        Err(err) => err.to_compile_error().into(),
+    }
+}
 
 #[proc_macro]
 pub fn value_expr_type(input: TokenStream) -> TokenStream {

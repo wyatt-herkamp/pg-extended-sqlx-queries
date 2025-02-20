@@ -282,9 +282,7 @@ mod tests {
         let mut select = SelectQueryBuilder::new(TestTable::table_name());
         select.select(TestTableColumn::Id.alias("user_id"));
 
-        select.filter(
-            TestTableColumn::Phone.equals(vec!["555-555-5555", "555-555-7777"].value().any()),
-        );
+        select.filter(TestTableColumn::Phone.equals(vec!["555-555-5555", "555-555-7777"].any()));
 
         let sql = select.format_sql_query();
         assert_eq!(

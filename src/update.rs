@@ -74,6 +74,18 @@ impl<'args> UpdateQueryBuilder<'args> {
         self.columns_to_update.push((column.dyn_column(), value));
         self
     }
+
+    /// Sets the column to NULL
+    ///
+    /// Shortcut for `set(column, SqlNull)`
+    pub fn set_null<C>(&mut self, column: C) -> &mut Self
+    where
+        C: ColumnType + 'static,
+    {
+        self.columns_to_update
+            .push((column.dyn_column(), SqlNull.into()));
+        self
+    }
 }
 impl SupportsReturning for UpdateQueryBuilder<'_> {
     fn returning(&mut self, returning: Returning) -> &mut Self {
