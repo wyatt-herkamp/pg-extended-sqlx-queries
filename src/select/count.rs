@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use crate::prelude::*;
 
 /// Counts the number of rows in a table based on the given where comparisons.
@@ -30,6 +32,15 @@ impl SelectCount<'_> {
 impl<'args> HasArguments<'args> for SelectCount<'args> {
     fn holder(&mut self) -> &mut ArgumentHolder<'args> {
         &mut self.arguments
+    }
+}
+impl<'args> Debug for SelectCount<'args> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SelectCount")
+            .field("table", &self.table)
+            .field("where_comparisons", &self.where_comparisons)
+            .field("sql", &self.sql)
+            .finish()
     }
 }
 

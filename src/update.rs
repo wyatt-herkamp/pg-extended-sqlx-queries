@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, fmt::Debug};
 
 use tracing::{debug, instrument};
 
@@ -53,7 +53,17 @@ impl<'args> FormatSqlQuery for UpdateQueryBuilder<'args> {
 }
 
 impl<'args> QueryTool<'args> for UpdateQueryBuilder<'args> {}
-
+impl<'args> Debug for UpdateQueryBuilder<'args> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("UpdateQueryBuilder")
+            .field("table", &self.table)
+            .field("columns_to_update", &self.columns_to_update)
+            .field("where_comparisons", &self.where_comparisons)
+            .field("sql", &self.sql)
+            .field("returning", &self.returning)
+            .finish()
+    }
+}
 impl<'args> UpdateQueryBuilder<'args> {
     pub fn new(table: &'args str) -> Self {
         Self {

@@ -33,7 +33,7 @@ pub trait FormatSqlQuery {
 /// These query builders are not meant to be fill every case in sql.
 ///
 /// They are great for the simple cases but the more you need. The more you should consider using sql directly.
-pub trait QueryTool<'args>: HasArguments<'args> + FormatSqlQuery {
+pub trait QueryTool<'args>: HasArguments<'args> + FormatSqlQuery + Debug {
     /// Builds a query that can be executed.
     ///
     /// See [sqlx::query_with] for more information.

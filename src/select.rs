@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, fmt::Debug};
 
 use crate::{
     expr::{ArgumentHolder, Expr, ExprType, HasArguments, SQLCondition, SQLOrder},
@@ -181,6 +181,21 @@ impl<'args> FormatSqlQuery for SelectQueryBuilder<'args> {
     }
 }
 impl<'args> QueryTool<'args> for SelectQueryBuilder<'args> {}
+impl<'args> Debug for SelectQueryBuilder<'args> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SelectQueryBuilder")
+            .field("table", &self.table)
+            .field("select", &self.select)
+            .field("where_comparisons", &self.where_comparisons)
+            .field("sql", &self.sql)
+            .field("joins", &self.joins)
+            .field("limit", &self.limit)
+            .field("offset", &self.offset)
+            .field("order_by", &self.order_by)
+            .field("total_count", &self.total_count)
+            .finish()
+    }
+}
 impl<'args> HasArguments<'args> for SelectQueryBuilder<'args> {
     fn holder(&mut self) -> &mut ArgumentHolder<'args> {
         &mut self.arguments
