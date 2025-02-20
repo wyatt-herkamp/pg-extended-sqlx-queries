@@ -8,7 +8,9 @@ pub use filter::*;
 mod function;
 pub use function::*;
 pub use value::*;
+mod keywords;
 mod multi;
+pub use keywords::*;
 mod returning;
 pub use returning::*;
 mod conflict;
@@ -67,6 +69,8 @@ pub enum Expr {
     Multiple(MultipleExpr),
     Empty,
     Null(SqlNull),
+    Other(OtherSql),
+    Keywords(Keywords),
 }
 impl From<DynColumn> for Expr {
     fn from(column: DynColumn) -> Self {
@@ -113,7 +117,9 @@ from_expr! {
     All => All,
     MultipleExpr => Multiple,
     SqlDefault => Default,
-    SqlNull => Null
+    SqlNull => Null,
+    OtherSql => Other,
+    Keywords => Keywords
 }
 
 from_expr!(Box<SQLCondition> => Condition);
@@ -132,6 +138,8 @@ impl FormatSql for Expr {
             Expr::Default(sql_default) => sql_default.format_sql(),
             Expr::Empty => Cow::default(),
             Expr::Null(sql_null) => sql_null.format_sql(),
+            Expr::Other(other) => other.format_sql(),
+            Expr::Keywords(keywords) => keywords.format_sql(),
         }
     }
 }

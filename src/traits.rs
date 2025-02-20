@@ -1,5 +1,5 @@
 use std::borrow::Cow;
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
 use std::future::Future;
 
 use sqlx::postgres::PgRow;
@@ -10,7 +10,7 @@ use tracing::trace;
 
 use crate::expr::{ExprType, FilterConditionBuilder, HasArguments, SQLCondition};
 
-pub trait FormatSql {
+pub trait FormatSql: Debug {
     fn format_sql(&self) -> Cow<'_, str>;
 }
 

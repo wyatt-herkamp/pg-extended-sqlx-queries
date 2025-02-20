@@ -152,3 +152,36 @@ impl FormatSql for SqlNull {
         Cow::Borrowed("NULL")
     }
 }
+/// Just a way to represent some weird cases in SQL
+#[derive(Debug)]
+pub struct OtherSql(pub Box<dyn FormatSql + Send + Sync>);
+impl OtherSql {
+    pub fn new<T>(value: T) -> OtherSql
+    where
+        T: FormatSql + Send + Sync + 'static,
+    {
+        OtherSql(Box::new(value))
+    }
+}
+
+impl FormatSql for OtherSql {
+    fn format_sql(&self) -> Cow<'_, str> {
+        self.0.format_sql()
+    }
+}
+
+impl<'args> ExprType<'args> for OtherSql {
+    fn process(self: Box<Self>, _: &mut ArgumentHolder<'args>) -> Expr
+    where
+        Self: 'args,
+    {
+        Expr::Other(*self)
+    }
+
+    fn process_unboxed(self, _: &mut ArgumentHolder<'args>) -> Expr
+    where
+        Self: 'args,
+    {
+        Expr::Other(self)
+    }
+}

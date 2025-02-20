@@ -61,4 +61,15 @@ pub trait WrapInFunction<'args>: ExprType<'args> + 'args {
     {
         self.wrap_in_function("ANY")
     }
+
+    fn extract(self, field: ExtractType) -> SqlFunctionBuilder<'args>
+    where
+        Self: Sized,
+    {
+        let params = MultipleExprBuilder::new()
+            .push(field)
+            .push(Keywords::From)
+            .push(self);
+        SqlFunctionBuilder::new("EXTRACT").add_param(params)
+    }
 }
