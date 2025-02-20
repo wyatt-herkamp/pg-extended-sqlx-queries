@@ -127,4 +127,20 @@ mod tests {
 
         println!("{}", sql);
     }
+
+    #[test]
+    pub fn test_builder_set_null() {
+        let mut query = UpdateQueryBuilder::new(TestTable::table_name());
+        query.filter(TestTableColumn::Id.equals(1));
+        query
+            .set(TestTableColumn::Age, SqlNull)
+            .set(TestTableColumn::Email, "test_ref_value@kingtux.dev")
+            .set(TestTableColumn::UpdatedAt, SqlFunctionBuilder::now())
+            .return_all();
+        let sql = query.format_sql_query();
+        assert_eq!(sql, "UPDATE test_table SET age = NULL, email = $2, updated_at = NOW() WHERE test_table.id = $1 RETURNING *;");
+        let sql = sqlformat::format(sql, &QueryParams::None, &FormatOptions::default());
+
+        println!("{}", sql);
+    }
 }

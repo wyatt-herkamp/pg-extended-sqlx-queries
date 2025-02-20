@@ -127,3 +127,28 @@ impl FormatSql for SqlDefault {
         Cow::Borrowed("DEFAULT")
     }
 }
+
+#[derive(Debug, Default)]
+pub struct SqlNull;
+impl<'args> ExprType<'args> for SqlNull {
+    #[inline]
+    fn process(self: Box<Self>, _: &mut ArgumentHolder<'args>) -> Expr
+    where
+        Self: 'args,
+    {
+        Expr::Null(*self)
+    }
+    #[inline]
+    fn process_unboxed(self, _: &mut ArgumentHolder<'args>) -> Expr
+    where
+        Self: 'args,
+    {
+        Expr::Null(self)
+    }
+}
+
+impl FormatSql for SqlNull {
+    fn format_sql(&self) -> Cow<'_, str> {
+        Cow::Borrowed("NULL")
+    }
+}

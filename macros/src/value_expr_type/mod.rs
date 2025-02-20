@@ -132,7 +132,8 @@ impl Parse for ValueExprTypes {
 
 #[cfg(test)]
 mod tests {
-    use syn::{DeriveInput, ItemMacro, Macro, StmtMacro};
+
+    use syn::Macro;
 
     use crate::value_expr_type::ValueExprTypes;
 

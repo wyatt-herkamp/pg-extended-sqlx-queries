@@ -66,6 +66,7 @@ pub enum Expr {
     Default(SqlDefault),
     Multiple(MultipleExpr),
     Empty,
+    Null(SqlNull),
 }
 impl From<DynColumn> for Expr {
     fn from(column: DynColumn) -> Self {
@@ -111,7 +112,8 @@ from_expr! {
     ExprAlias => Alias,
     All => All,
     MultipleExpr => Multiple,
-    SqlDefault => Default
+    SqlDefault => Default,
+    SqlNull => Null
 }
 
 from_expr!(Box<SQLCondition> => Condition);
@@ -129,6 +131,7 @@ impl FormatSql for Expr {
             Expr::Multiple(multiple) => multiple.format_sql(),
             Expr::Default(sql_default) => sql_default.format_sql(),
             Expr::Empty => Cow::default(),
+            Expr::Null(sql_null) => sql_null.format_sql(),
         }
     }
 }
