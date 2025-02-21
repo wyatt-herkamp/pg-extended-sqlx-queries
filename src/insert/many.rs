@@ -4,7 +4,7 @@ use crate::{
     expr::{ArgumentHolder, ConflictQuery, HasArguments, OnConflict, Returning, SupportsReturning},
     prelude::ColumnType,
     table_layout::concat_columns_no_table_name,
-    traits::{FormatSql, FormatSqlQuery, QueryTool},
+    traits::{FormatSql, FormatSqlQuery, QueryTool, SpaceBefore},
 };
 
 mod row;
@@ -14,7 +14,7 @@ use tracing::{debug, instrument};
 pub struct InsertManyBuilder<'args, C: ColumnType> {
     columns_to_insert: Vec<C>,
     sql: Option<String>,
-    returning: Returning,
+    returning: Option<Returning>,
     rows: Vec<InsertRow<C>>,
     table: &'static str,
     arguments: ArgumentHolder<'args>,
@@ -96,7 +96,7 @@ impl<'args, C: ColumnType> InsertManyBuilder<'args, C> {
 }
 impl<C: ColumnType> SupportsReturning for InsertManyBuilder<'_, C> {
     fn returning(&mut self, returning: Returning) -> &mut Self {
-        self.returning = returning;
+        self.returning = Some(returning);
         self
     }
 }
@@ -115,7 +115,7 @@ impl<C: ColumnType> FormatSqlQuery for InsertManyBuilder<'_, C> {
             "INSERT INTO {table} ({columns}) VALUES {placeholders}{on_conflict}{returning};",
             table = self.table,
             on_conflict = self.on_conflict.format_sql(),
-            returning = self.returning,
+            returning = SpaceBefore::from(self.returning.as_ref()),
         );
         debug!(?sql, "InsertManyBuilder::gen_sql");
 

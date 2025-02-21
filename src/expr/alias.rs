@@ -1,7 +1,7 @@
 use crate::traits::FormatSql;
 use std::borrow::Cow;
 
-use super::{arguments::ArgumentHolder, Expr, ExprType};
+use super::{Expr, ExprType, arguments::ArgumentHolder};
 
 pub struct ExprAsType<'args, E: ExprType<'args>> {
     expr: E,
@@ -37,7 +37,7 @@ where
         })
     }
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct ExprAlias {
     expr: Box<Expr>,
     alias: Cow<'static, str>,

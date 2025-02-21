@@ -25,8 +25,8 @@ pub struct SelectQueryBuilder<'args> {
     limit: Option<i32>,
     offset: Option<i32>,
     order_by: Option<(DynColumn, SQLOrder)>,
-    total_count: Option<&'static str>,
 }
+
 impl PaginationSupportingTool for SelectQueryBuilder<'_> {
     fn limit(&mut self, limit: i32) -> &mut Self {
         self.limit = Some(limit);
@@ -43,14 +43,13 @@ impl<'args> SelectQueryBuilder<'args> {
         Self {
             table: Cow::Borrowed(table),
             select: Vec::new(),
-            where_comparisons: Vec::new(),
+            where_comparisons: vec![],
             sql: None,
             joins: Vec::new(),
             arguments: Default::default(),
             limit: None,
             offset: None,
             order_by: None,
-            total_count: None,
         }
     }
     pub fn with_columns<C>(table: &'args str, columns: impl Into<Vec<C>>) -> Self
@@ -60,26 +59,13 @@ impl<'args> SelectQueryBuilder<'args> {
         let columns = columns
             .into()
             .into_iter()
-            .map(|column| Expr::Column(column.dyn_column()))
+            .map(|column| column.dyn_column())
             .collect();
-        Self {
-            table: Cow::Borrowed(table),
-            select: columns,
-            where_comparisons: Vec::new(),
-            sql: None,
-            joins: Vec::new(),
-            arguments: Default::default(),
-            limit: None,
-            offset: None,
-            order_by: None,
-            total_count: None,
-        }
+        let mut this = Self::new(table);
+        this.select_many(columns);
+        this
     }
 
-    pub fn total_count(&mut self, column: &'static str) -> &mut Self {
-        self.total_count = Some(column);
-        self
-    }
     pub fn order_by<C>(&mut self, column: C, order: SQLOrder) -> &mut Self
     where
         C: ColumnType + 'static,
@@ -121,7 +107,7 @@ impl<'args> SelectQueryBuilder<'args> {
     }
     /// SELECT * FROM table
     pub fn select_all(&mut self) -> &mut Self {
-        self.select.push(Expr::All(Default::default()));
+        self.select.push(Expr::Wildcard(Default::default()));
         self
     }
 }
@@ -138,14 +124,9 @@ impl<'args> FormatSqlQuery for SelectQueryBuilder<'args> {
         }
 
         let concat_columns = columns.join(", ");
-        let total_count = if let Some(total_count) = self.total_count {
-            format!(",   COUNT(*) OVER() AS {}", total_count)
-        } else {
-            String::default()
-        };
 
         let mut sql = format!(
-            "SELECT {columns}{total_count} FROM {table}",
+            "SELECT {columns} FROM {table}",
             columns = concat_columns,
             table = self.table
         );
@@ -192,7 +173,6 @@ impl<'args> Debug for SelectQueryBuilder<'args> {
             .field("limit", &self.limit)
             .field("offset", &self.offset)
             .field("order_by", &self.order_by)
-            .field("total_count", &self.total_count)
             .finish()
     }
 }
@@ -213,13 +193,13 @@ impl<'args> WhereableTool<'args> for SelectQueryBuilder<'args> {
 }
 #[cfg(test)]
 mod tests {
-    use sqlformat::{FormatOptions, QueryParams};
+
 
     use crate::{
         expr::Collate,
         pagination::PaginationSupportingTool,
         prelude::*,
-        testing::{AnotherTable, AnotherTableColumn, TestTable, TestTableColumn},
+        testing::{AnotherTable, AnotherTableColumn, TestTable, TestTableColumn, print_query},
     };
     #[test]
     fn basic_select() {
@@ -239,9 +219,7 @@ mod tests {
             "SELECT test_table.age, test_table.email, test_table.first_name, test_table.last_name, test_table.id AS user_id FROM test_table WHERE test_table.age = $1"
         );
 
-        let sql = sqlformat::format(sql, &QueryParams::None, &FormatOptions::default());
-
-        println!("{}", sql);
+        print_query(sql, "Basic Select");
     }
 
     #[test]
@@ -267,9 +245,7 @@ mod tests {
             "SELECT test_table.id AS user_id, test_table.email, test_table.first_name, COUNT(*) OVER() AS total_count FROM test_table WHERE test_table.age = $1 LIMIT 10 OFFSET 5"
         );
 
-        let sql = sqlformat::format(sql, &QueryParams::None, &FormatOptions::default());
-
-        println!("{}", sql);
+        print_query(sql, "Basic Select with Expr");
     }
 
     #[test]
@@ -288,9 +264,7 @@ mod tests {
             sql,
             "SELECT test_table.id AS user_id, another_table.age FROM test_table INNER JOIN another_table ON test_table.id = another_table.id WHERE test_table.age = $1"
         );
-        let sql = sqlformat::format(sql, &QueryParams::None, &FormatOptions::default());
-
-        println!("{}", sql);
+        print_query(sql, "Select Join");
     }
     #[test]
     fn select_any() {
@@ -304,6 +278,8 @@ mod tests {
             sql,
             "SELECT test_table.id AS user_id FROM test_table WHERE test_table.phone = ANY($1)"
         );
+
+        print_query(sql, "Select Any");
     }
     #[test]
     fn select_between() {
@@ -317,6 +293,8 @@ mod tests {
             sql,
             "SELECT test_table.id AS user_id FROM test_table WHERE test_table.age BETWEEN $1 AND $2"
         );
+
+        print_query(sql, "Select Between");
     }
     #[test]
     fn select_collate() {
@@ -335,5 +313,27 @@ mod tests {
             sql,
             "SELECT * FROM test_table WHERE test_table.first_name = $1 COLLATE \"tr-TR-x-icu\" OR test_table.last_name = $2 COLLATE \"tr-TR-x-icu\""
         );
+        print_query(sql, "Select Collate");
+    }
+
+    #[test]
+    fn select_with_grouped() {
+        let mut select = SelectQueryBuilder::new(TestTable::table_name());
+        select.select_all().filter(
+            TestTableColumn::FirstName.equals("test".value()).and(
+                TestTableColumn::LastName
+                    .equals("test".value())
+                    .and(TestTableColumn::Phone.like("555%"))
+                    .grouped(),
+            ),
+        );
+
+        let sql = select.format_sql_query();
+        assert_eq!(
+            sql,
+            "SELECT * FROM test_table WHERE test_table.first_name = $1 AND (test_table.last_name = $2 AND test_table.phone LIKE $3)"
+        );
+
+        print_query(sql, "Select with Grouped");
     }
 }

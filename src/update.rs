@@ -9,7 +9,7 @@ pub struct UpdateQueryBuilder<'args> {
     columns_to_update: Vec<(DynColumn, Expr)>,
     where_comparisons: Vec<SQLCondition>,
     sql: Option<String>,
-    returning: Returning,
+    returning: Option<Returning>,
     arguments: ArgumentHolder<'args>,
 }
 
@@ -43,7 +43,7 @@ impl<'args> FormatSqlQuery for UpdateQueryBuilder<'args> {
             "UPDATE {table} SET {columns_to_update}{filter}{returning};",
             table = self.table,
             filter = FormatWhereItem(self),
-            returning = self.returning
+            returning = SpaceBefore::from(self.returning.as_ref())
         );
         debug!(?sql, "UpdateQueryBuilder::format_sql_query");
         self.sql = Some(sql);
@@ -71,7 +71,7 @@ impl<'args> UpdateQueryBuilder<'args> {
             columns_to_update: Vec::new(),
             where_comparisons: Vec::new(),
             sql: None,
-            returning: Returning::None,
+            returning: None,
             arguments: Default::default(),
         }
     }
@@ -93,13 +93,13 @@ impl<'args> UpdateQueryBuilder<'args> {
         C: ColumnType + 'static,
     {
         self.columns_to_update
-            .push((column.dyn_column(), SqlNull.into()));
+            .push((column.dyn_column(), Keywords::Null.into()));
         self
     }
 }
 impl SupportsReturning for UpdateQueryBuilder<'_> {
     fn returning(&mut self, returning: Returning) -> &mut Self {
-        self.returning = returning;
+        self.returning = Some(returning);
         self
     }
 }
@@ -127,7 +127,10 @@ mod tests {
             )
             .set(TestTableColumn::UpdatedAt, SqlFunctionBuilder::now());
         let sql = query.format_sql_query();
-        assert_eq!(sql, "UPDATE test_table SET age = $2, email = $3, phone = (SELECT another_table.phone FROM another_table WHERE another_table.id = $4), updated_at = NOW() WHERE test_table.id = $1;");
+        assert_eq!(
+            sql,
+            "UPDATE test_table SET age = $2, email = $3, phone = (SELECT another_table.phone FROM another_table WHERE another_table.id = $4), updated_at = NOW() WHERE test_table.id = $1;"
+        );
 
         let sql = sqlformat::format(sql, &QueryParams::None, &FormatOptions::default());
 
@@ -144,7 +147,10 @@ mod tests {
             .set(TestTableColumn::UpdatedAt, SqlFunctionBuilder::now())
             .return_all();
         let sql = query.format_sql_query();
-        assert_eq!(sql, "UPDATE test_table SET age = $2, email = $3, updated_at = NOW() WHERE test_table.id = $1 RETURNING *;");
+        assert_eq!(
+            sql,
+            "UPDATE test_table SET age = $2, email = $3, updated_at = NOW() WHERE test_table.id = $1 RETURNING *;"
+        );
         let sql = sqlformat::format(sql, &QueryParams::None, &FormatOptions::default());
 
         println!("{}", sql);
@@ -160,7 +166,10 @@ mod tests {
             .set(TestTableColumn::UpdatedAt, SqlFunctionBuilder::now())
             .return_all();
         let sql = query.format_sql_query();
-        assert_eq!(sql, "UPDATE test_table SET age = NULL, email = $2, updated_at = NOW() WHERE test_table.id = $1 RETURNING *;");
+        assert_eq!(
+            sql,
+            "UPDATE test_table SET age = NULL, email = $2, updated_at = NOW() WHERE test_table.id = $1 RETURNING *;"
+        );
         let sql = sqlformat::format(sql, &QueryParams::None, &FormatOptions::default());
 
         println!("{}", sql);

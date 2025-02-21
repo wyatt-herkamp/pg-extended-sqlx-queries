@@ -33,6 +33,14 @@ impl ColumnType for DynColumn {
         self.0.full_name()
     }
 }
+impl<C> PartialEq<C> for DynColumn
+where
+    C: ColumnType,
+{
+    fn eq(&self, other: &C) -> bool {
+        self.column_name() == other.column_name() && self.table_name() == other.table_name()
+    }
+}
 impl<'args> ExprType<'args> for DynColumn {
     fn process(self: Box<Self>, _args: &mut ArgumentHolder<'args>) -> Expr {
         Expr::Column(*self)

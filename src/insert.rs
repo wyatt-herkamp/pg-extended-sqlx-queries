@@ -7,7 +7,7 @@ use crate::{
     },
     prelude::{ColumnType, DynColumn},
     table_layout::concat_columns_no_table_name,
-    traits::{FormatSql, FormatSqlQuery, QueryTool},
+    traits::{FormatSql, FormatSqlQuery, QueryTool, SpaceBefore},
 };
 use tracing::{debug, instrument};
 pub mod many;
@@ -15,7 +15,7 @@ pub struct InsertQueryBuilder<'args> {
     columns: Vec<DynColumn>,
     insert: Vec<Expr>,
     sql: Option<String>,
-    returning: Returning,
+    returning: Option<Returning>,
     table: &'static str,
     on_conflict: Option<OnConflict>,
     arguments: ArgumentHolder<'args>,
@@ -87,7 +87,7 @@ impl<'args> HasArguments<'args> for InsertQueryBuilder<'args> {
 impl<'args> QueryTool<'args> for InsertQueryBuilder<'args> {}
 impl SupportsReturning for InsertQueryBuilder<'_> {
     fn returning(&mut self, returning: Returning) -> &mut Self {
-        self.returning = returning;
+        self.returning = Some(returning);
         self
     }
 }
@@ -105,7 +105,7 @@ impl FormatSqlQuery for InsertQueryBuilder<'_> {
             "INSERT INTO {table} ({columns}) VALUES ({values}){on_conflict}{returning};",
             table = self.table,
             on_conflict = self.on_conflict.format_sql(),
-            returning = self.returning,
+            returning = SpaceBefore::from(self.returning.as_ref()),
         );
         debug!(?sql, "InsertQueryBuilder::gen_sql");
         self.sql = Some(sql);

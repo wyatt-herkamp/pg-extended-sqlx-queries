@@ -6,8 +6,8 @@ use crate::traits::FormatSql;
 pub use extract::*;
 
 use super::{
-    Aliasable, All, ArgumentHolder, Expr, ExprType, MultipleExpr, MultipleExprBuilder,
-    MultipleExprType,
+    Aliasable, ArgumentHolder, Expr, ExprType, MultipleExpr, MultipleExprBuilder, MultipleExprType,
+    Wildcard,
 };
 
 pub struct SqlFunctionBuilder<'args> {
@@ -43,7 +43,7 @@ impl<'args> SqlFunctionBuilder<'args> {
     ///  use crate::pg_extended_sqlx_queries::expr::arguments::HasArguments;
     ///  let mut fake_query = FakeQuery::default();
     ///  let expr = SqlFunctionBuilder::count_all();
-    ///  let other_way = SqlFunctionBuilder::count().add_param(All::new());
+    ///  let other_way = SqlFunctionBuilder::count().add_param(Wildcard::new());
     ///
     ///  let expr = expr.process_unboxed(&mut fake_query.holder());
     ///  let other_way = other_way.process_unboxed(&mut fake_query.holder());
@@ -53,7 +53,7 @@ impl<'args> SqlFunctionBuilder<'args> {
     ///  assert_eq!(expr, other_way);
     ///  ```
     pub fn count_all() -> Self {
-        Self::new("COUNT").add_param(All::new())
+        Self::new("COUNT").add_param(Wildcard::new())
     }
     pub fn over() -> Self {
         Self::new("OVER")
@@ -106,7 +106,7 @@ impl<'args> MultipleExprType<'args> for SqlFunctionBuilder<'args> {
         MultipleExprBuilder::with(self).then(function)
     }
 }
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq)]
 pub struct SqlFunction<Params: FormatSql = MultipleExpr> {
     function_name: Cow<'static, str>,
     params: Params,

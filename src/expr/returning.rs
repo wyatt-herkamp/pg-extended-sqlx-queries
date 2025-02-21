@@ -1,31 +1,29 @@
-use std::fmt::Display;
-
-use crate::{prelude::DynColumn, table_layout::concat_columns_no_table_name, ColumnType};
+use crate::{
+    ColumnType, prelude::DynColumn, table_layout::concat_columns_no_table_name, traits::FormatSql,
+};
 
 #[derive(Debug)]
 pub enum Returning {
-    None,
+    /// Return Wildcard
+    ///
+    /// `RETURNING *`
     All,
+    /// Return specific columns
+    ///
+    /// `RETURNING column1, column2`
     Columns(Vec<DynColumn>),
 }
-impl Display for Returning {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl FormatSql for Returning {
+    fn format_sql(&self) -> std::borrow::Cow<'_, str> {
         match self {
-            Self::None => write!(f, ""),
-            Self::All => write!(f, " RETURNING *"),
+            Self::All => "RETURNING *".into(),
             Self::Columns(columns) => {
                 let columns = concat_columns_no_table_name(columns);
-                write!(f, " RETURNING {}", columns)
+                format!("RETURNING {}", columns).into()
             }
         }
     }
 }
-impl Default for Returning {
-    fn default() -> Self {
-        Self::None
-    }
-}
-
 pub trait SupportsReturning {
     fn returning(&mut self, returning: Returning) -> &mut Self;
     fn return_all(&mut self) -> &mut Self {

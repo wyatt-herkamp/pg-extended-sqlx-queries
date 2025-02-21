@@ -2,7 +2,7 @@ use std::{borrow::Cow, fmt::Display};
 
 use crate::traits::FormatSql;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Collate {
     /// Collation: tr-TR-x-icu
     TrTrxIcu,

@@ -4,9 +4,9 @@ use crate::prelude::ColumnType;
 use crate::traits::{ExpressionWhereable, FormatSql, FormatWhere};
 use crate::{pagination::PaginationOwnedSupportingTool, prelude::DynColumn};
 
-use super::{arguments::ArgumentHolder, concat_with_comma, SQLCondition, SQLOrder};
 use super::{Aliasable, DynExpr, Expr, ExprType, FilterConditionBuilder, WrapInFunction};
-#[derive(Debug)]
+use super::{SQLCondition, SQLOrder, arguments::ArgumentHolder, concat_with_comma};
+#[derive(Debug, PartialEq)]
 pub struct SelectExpr {
     table: &'static str,
     select: Vec<Expr>,

@@ -1,7 +1,7 @@
 use crate::traits::FormatSql;
 use std::borrow::Cow;
 
-use super::{arguments::ArgumentHolder, Expr, ExprType};
+use super::{Expr, ExprType, arguments::ArgumentHolder};
 /// SQL Basic Comparisons Types
 ///
 /// This is used in the `WHERE` clause of a query
@@ -73,88 +73,63 @@ impl FormatSql for AndOr {
         }
     }
 }
-
-#[derive(Debug, Default)]
-pub struct All;
-impl<'args> ExprType<'args> for All {
+/// SQL Wildcards
+///
+/// If the Option is None, it means `*`
+///
+/// Otherwise it will be `{value}.*`
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct Wildcard(pub Option<Cow<'static, str>>);
+impl From<&'static str> for Wildcard {
+    fn from(s: &'static str) -> Self {
+        Wildcard(Some(Cow::Borrowed(s)))
+    }
+}
+impl From<String> for Wildcard {
+    fn from(s: String) -> Self {
+        Wildcard(Some(Cow::Owned(s)))
+    }
+}
+impl<'args> ExprType<'args> for Wildcard {
     #[inline]
     fn process(self: Box<Self>, _: &mut ArgumentHolder<'args>) -> Expr
     where
         Self: 'args,
     {
-        Expr::All(*self)
+        Expr::Wildcard(*self)
     }
     #[inline]
     fn process_unboxed(self, _: &mut ArgumentHolder<'args>) -> Expr
     where
         Self: 'args,
     {
-        Expr::All(self)
+        Expr::Wildcard(self)
     }
 }
-impl All {
-    pub fn new<'args>() -> All {
-        All
+impl Wildcard {
+    pub fn new<'args>() -> Wildcard {
+        Wildcard(None)
     }
 }
-impl FormatSql for All {
-    fn format_sql(&self) -> Cow<'_, str> {
-        Cow::Borrowed("*")
-    }
-}
-
-#[derive(Debug, Default)]
-pub struct SqlDefault;
-impl<'args> ExprType<'args> for SqlDefault {
-    #[inline]
-    fn process(self: Box<Self>, _: &mut ArgumentHolder<'args>) -> Expr
-    where
-        Self: 'args,
-    {
-        Expr::Default(*self)
-    }
-    #[inline]
-    fn process_unboxed(self, _: &mut ArgumentHolder<'args>) -> Expr
-    where
-        Self: 'args,
-    {
-        Expr::Default(self)
+impl FormatSql for Wildcard {
+    fn format_sql(&self) -> Cow<'static, str> {
+        match &self.0 {
+            Some(s) => Cow::Owned(format!("{}.*", s)),
+            None => Cow::Borrowed("*"),
+        }
     }
 }
 
-impl FormatSql for SqlDefault {
-    fn format_sql(&self) -> Cow<'_, str> {
-        Cow::Borrowed("DEFAULT")
-    }
-}
-
-#[derive(Debug, Default)]
-pub struct SqlNull;
-impl<'args> ExprType<'args> for SqlNull {
-    #[inline]
-    fn process(self: Box<Self>, _: &mut ArgumentHolder<'args>) -> Expr
-    where
-        Self: 'args,
-    {
-        Expr::Null(*self)
-    }
-    #[inline]
-    fn process_unboxed(self, _: &mut ArgumentHolder<'args>) -> Expr
-    where
-        Self: 'args,
-    {
-        Expr::Null(self)
-    }
-}
-
-impl FormatSql for SqlNull {
-    fn format_sql(&self) -> Cow<'_, str> {
-        Cow::Borrowed("NULL")
-    }
-}
 /// Just a way to represent some weird cases in SQL
 #[derive(Debug)]
 pub struct OtherSql(pub Box<dyn FormatSql + Send + Sync>);
+impl PartialEq for OtherSql {
+    fn eq(&self, other: &Self) -> bool {
+        let this = self.0.format_sql();
+        let other = other.0.format_sql();
+        this == other
+    }
+}
 impl OtherSql {
     pub fn new<T>(value: T) -> OtherSql
     where

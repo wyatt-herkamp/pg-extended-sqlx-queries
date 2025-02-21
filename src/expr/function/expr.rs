@@ -61,7 +61,9 @@ pub trait WrapInFunction<'args>: ExprType<'args> + 'args {
     {
         self.wrap_in_function("ANY")
     }
-
+    /// Calls Postgres EXTRACT function on the given expression.
+    ///
+    /// Reference: https://www.postgresql.org/docs/current/functions-datetime.html#FUNCTIONS-DATETIME-EXTRACT
     fn extract(self, field: ExtractType) -> SqlFunctionBuilder<'args>
     where
         Self: Sized,

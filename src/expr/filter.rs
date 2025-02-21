@@ -1,7 +1,7 @@
 mod builder;
 use crate::traits::FormatSql;
 
-use super::{arguments::ArgumentHolder, AndOr, DynExpr, Expr, ExprType, SQLComparison};
+use super::{AndOr, DynExpr, Expr, ExprType, SQLComparison, arguments::ArgumentHolder};
 mod expr;
 use builder::FilterConditionBuilderInner;
 pub use expr::*;
@@ -42,6 +42,10 @@ impl<'args, L: ExprType<'args> + 'args, R: ExprType<'args> + 'args>
         }
         .into()
     }
+    /// Groups the current expression in parenthesis
+    pub fn grouped(self) -> FilterConditionBuilder<'args, Self, ()> {
+        FilterConditionBuilderInner::Grouped(self).into()
+    }
     pub fn not(self) -> FilterConditionBuilder<'args, Self, ()> {
         FilterConditionBuilderInner::Not(self).into()
     }
@@ -71,7 +75,7 @@ impl<'args, L: ExprType<'args> + 'args, R: ExprType<'args> + 'args> ExprType<'ar
         Expr::Condition(Box::new(self.process_inner(args)))
     }
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum SQLCondition {
     /// Generic comparison between two values
     CompareValue {
@@ -103,6 +107,8 @@ pub enum SQLCondition {
         expression: Expr,
         collate: crate::expr::collate::Collate,
     },
+    /// ({EXPR})
+    Grouped(Expr),
 }
 impl FormatSql for SQLCondition {
     fn format_sql(&self) -> std::borrow::Cow<'_, str> {
@@ -143,6 +149,8 @@ impl FormatSql for SQLCondition {
                 expression,
                 collate,
             } => format!("{} {}", expression.format_sql(), collate.format_sql()).into(),
+
+            SQLCondition::Grouped(expr) => format!("({})", expr.format_sql()).into(),
         }
     }
 }

@@ -56,7 +56,7 @@ pub trait ExprType<'args> {
         Self: 'args;
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Expr {
     ArgumentIndex(ArgumentIndex),
     Function(SqlFunction),
@@ -64,11 +64,9 @@ pub enum Expr {
     Condition(Box<SQLCondition>),
     Select(SelectExpr),
     Alias(ExprAlias),
-    All(All),
-    Default(SqlDefault),
+    Wildcard(Wildcard),
     Multiple(MultipleExpr),
     Empty,
-    Null(SqlNull),
     Other(OtherSql),
     Keywords(Keywords),
 }
@@ -114,10 +112,8 @@ from_expr! {
     ArgumentIndex => ArgumentIndex,
     SelectExpr => Select,
     ExprAlias => Alias,
-    All => All,
+    Wildcard => Wildcard,
     MultipleExpr => Multiple,
-    SqlDefault => Default,
-    SqlNull => Null,
     OtherSql => Other,
     Keywords => Keywords
 }
@@ -133,11 +129,9 @@ impl FormatSql for Expr {
             Expr::Condition(condition) => condition.format_sql(),
             Expr::Select(select) => select.format_sql(),
             Expr::Alias(alias) => alias.format_sql(),
-            Expr::All(all) => all.format_sql(),
+            Expr::Wildcard(all) => all.format_sql(),
             Expr::Multiple(multiple) => multiple.format_sql(),
-            Expr::Default(sql_default) => sql_default.format_sql(),
             Expr::Empty => Cow::default(),
-            Expr::Null(sql_null) => sql_null.format_sql(),
             Expr::Other(other) => other.format_sql(),
             Expr::Keywords(keywords) => keywords.format_sql(),
         }

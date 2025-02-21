@@ -1,7 +1,7 @@
 use std::{borrow::Cow, fmt::Debug};
 
 use crate::{
-    expr::{Expr, ExprType, SqlDefault},
+    expr::{Expr, ExprType, Keywords},
     prelude::ColumnType,
     traits::FormatSql,
 };
@@ -45,7 +45,7 @@ impl<'query, 'args, C: ColumnType + PartialEq + Clone> InsertRowBuilder<'query, 
             self.columns_to_insert.push((column, expr));
         } else {
             self.columns_to_insert
-                .push((column, SqlDefault::default().into()));
+                .push((column, Keywords::Default.into()));
         }
         self
     }
@@ -56,7 +56,7 @@ impl<'query, 'args, C: ColumnType + PartialEq + Clone> InsertRowBuilder<'query, 
             // Any values that do not have a value will be set to DEFAULT
             let value = index_within_row
                 .map(|index| self.columns_to_insert.remove(index).1)
-                .unwrap_or_else(|| SqlDefault::default().into());
+                .unwrap_or_else(|| Keywords::Default.into());
             values.push((column.clone(), value));
         }
         InsertRow(values)
@@ -122,7 +122,7 @@ impl<'query, 'args, C: ColumnType + PartialEq + Clone> InsertRowOrderedBuilder<'
             self.columns_to_insert
                 .push(value.process_unboxed(&mut self.query.arguments));
         } else {
-            self.columns_to_insert.push(SqlDefault::default().into());
+            self.columns_to_insert.push(Keywords::Default.into());
         }
         self
     }
@@ -130,7 +130,7 @@ impl<'query, 'args, C: ColumnType + PartialEq + Clone> InsertRowOrderedBuilder<'
         let mut column_values = Vec::with_capacity(self.query.columns_to_insert.len());
         let mut values = self.columns_to_insert.into_iter();
         for column in self.query.columns_to_insert.iter() {
-            let value = values.next().unwrap_or(SqlDefault::default().into());
+            let value = values.next().unwrap_or(Keywords::Default.into());
             // Any values that do not have a value will be set to DEFAULT
             column_values.push((column.clone(), value));
         }

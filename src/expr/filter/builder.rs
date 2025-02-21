@@ -22,6 +22,7 @@ pub(crate) enum FilterConditionBuilderInner<
     NotNull(L),
     Not(L),
     Null(L),
+    Grouped(L),
 
     Then {
         left: L,
@@ -58,6 +59,7 @@ impl<'args, L: ExprType<'args> + 'args, R: ExprType<'args> + 'args>
                 start: DynExpr::new(start),
                 end: DynExpr::new(end),
             },
+            Self::Grouped(expr) => FilterConditionBuilderInner::Grouped(DynExpr::new(expr)),
             Self::Not(expr) => FilterConditionBuilderInner::Not(DynExpr::new(expr)),
             Self::NotNull(expr) => FilterConditionBuilderInner::NotNull(DynExpr::new(expr)),
             Self::Null(expr) => FilterConditionBuilderInner::Null(DynExpr::new(expr)),
@@ -121,6 +123,10 @@ impl<'args, L: ExprType<'args> + 'args, R: ExprType<'args> + 'args>
             },
             FilterConditionBuilderInner::Not(expr) => SQLCondition::Not(expr.process_unboxed(args)),
             FilterConditionBuilderInner::Hidden(_) => unreachable!(),
+
+            FilterConditionBuilderInner::Grouped(expr) => {
+                SQLCondition::Grouped(expr.process_unboxed(args))
+            }
         }
     }
 }

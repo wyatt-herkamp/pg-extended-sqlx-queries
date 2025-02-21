@@ -1,4 +1,4 @@
-use super::{arguments::ArgumentHolder, Aliasable, DynExpr, Expr, ExprType};
+use super::{Aliasable, DynExpr, Expr, ExprType, arguments::ArgumentHolder};
 use crate::traits::FormatSql;
 use std::borrow::Cow;
 pub trait MultipleExprType<'args>: ExprType<'args> {
@@ -64,7 +64,7 @@ impl<'args> MultipleExprType<'args> for MultipleExprBuilder<'args> {
         self
     }
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct MultipleExpr {
     functions: Vec<Expr>,
     seperator: Cow<'static, str>,

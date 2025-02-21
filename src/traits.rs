@@ -13,6 +13,34 @@ use crate::expr::{ExprType, FilterConditionBuilder, HasArguments, SQLCondition};
 pub trait FormatSql: Debug {
     fn format_sql(&self) -> Cow<'_, str>;
 }
+impl FormatSql for () {
+    #[inline]
+    fn format_sql(&self) -> Cow<'_, str> {
+        Cow::default()
+    }
+}
+pub struct SpaceBefore<'sql, Sql>(pub Option<&'sql Sql>)
+where
+    Sql: FormatSql;
+impl<'sql, Sql: FormatSql> Display for SpaceBefore<'sql, Sql> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if let Some(sql) = self.0 {
+            write!(f, " {}", sql.format_sql())
+        } else {
+            Ok(())
+        }
+    }
+}
+impl<'sql, Sql: FormatSql> From<Option<&'sql Sql>> for SpaceBefore<'sql, Sql> {
+    fn from(sql: Option<&'sql Sql>) -> Self {
+        Self(sql)
+    }
+}
+impl<'sql, Sql: FormatSql> From<&'sql Sql> for SpaceBefore<'sql, Sql> {
+    fn from(sql: &'sql Sql) -> Self {
+        Self(Some(sql))
+    }
+}
 
 pub trait FormatSqlQuery {
     fn format_sql_query(&mut self) -> &str;

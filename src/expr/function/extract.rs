@@ -1,5 +1,5 @@
 use crate::{
-    expr::{ArgumentHolder, Expr, ExprType, OtherSql},
+    expr::{ArgumentHolder, Expr, ExprType},
     traits::FormatSql,
 };
 
@@ -20,14 +20,14 @@ impl<'args> ExprType<'args> for ExtractType {
     where
         Self: 'args,
     {
-        Expr::Other(OtherSql::new(*self))
+        Expr::Keywords((*self).into())
     }
 
     fn process_unboxed(self, _: &mut ArgumentHolder<'args>) -> Expr
     where
         Self: 'args,
     {
-        Expr::Other(OtherSql::new(self))
+        Expr::Keywords(self.into())
     }
 }
 
@@ -49,21 +49,18 @@ impl FormatSql for ExtractType {
 
 #[cfg(test)]
 mod tests {
-    #[cfg(test)]
-    mod tests {
-        use crate::fake::FakeQuery;
-        use crate::prelude::*;
-        use crate::testing::TestTableColumn;
+    use crate::fake::FakeQuery;
+    use crate::prelude::*;
+    use crate::testing::TestTableColumn;
 
-        #[test]
-        pub fn test_extract() {
-            let expr = TestTableColumn::CreatedAt.extract(ExtractType::Day);
+    #[test]
+    pub fn test_extract() {
+        let expr = TestTableColumn::CreatedAt.extract(ExtractType::Day);
 
-            // Code for faking the query
-            let mut parent = FakeQuery::default();
-            let expr = expr.process_unboxed(&mut parent.arguments);
+        // Code for faking the query
+        let mut parent = FakeQuery::default();
+        let expr = expr.process_unboxed(&mut parent.arguments);
 
-            assert_eq!(expr.format_sql(), "EXTRACT(DAY FROM test_table.created_at)");
-        }
+        assert_eq!(expr.format_sql(), "EXTRACT(DAY FROM test_table.created_at)");
     }
 }

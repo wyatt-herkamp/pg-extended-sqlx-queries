@@ -2,6 +2,8 @@
 
 use std::fmt::Debug;
 
+use crate::traits::FormatSql;
+
 /// An SQL Tool that supports pagination
 pub trait PaginationSupportingTool {
     /// Set the limit for the query
@@ -88,5 +90,36 @@ impl Default for PageParams {
             page_size: 10,
             page_number: 1,
         }
+    }
+}
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct FormatLimitOffset {
+    pub limit: Option<i32>,
+    pub offset: Option<i32>,
+}
+impl FormatLimitOffset {
+    pub fn new_optional(limit: Option<i32>, offset: Option<i32>) -> Option<Self> {
+        if limit.is_none() && offset.is_none() {
+            None
+        } else {
+            Some(Self { limit, offset })
+        }
+    }
+}
+impl FormatSql for FormatLimitOffset {
+    fn format_sql(&self) -> std::borrow::Cow<'_, str> {
+        let mut sql = String::new();
+        if let Some(limit) = self.limit.as_ref() {
+            sql.push_str("LIMIT ");
+            sql.push_str(&limit.to_string());
+        }
+        if let Some(offset) = self.offset {
+            if !sql.is_empty() {
+                sql.push(' ');
+            }
+            sql.push_str("OFFSET ");
+            sql.push_str(&offset.to_string());
+        }
+        sql.into()
     }
 }

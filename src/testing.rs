@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 //! Testing Utilities for the Database Tooling
 use chrono::{DateTime, FixedOffset};
+use sqlformat::{FormatOptions, QueryParams};
 
 use crate::prelude::*;
 #[derive(Debug, Clone, TableType)]
@@ -30,10 +31,17 @@ pub struct AnotherTable {
 
 #[cfg(test)]
 mod tests {
-    use crate::{testing::TestTableColumn, ColumnType};
+    use crate::{ColumnType, testing::TestTableColumn};
     #[test]
     fn test_table_columns() {
         assert!(TestTableColumn::Id.column_name() == "id");
         assert!(TestTableColumn::Id.full_name() == "test_table.id");
     }
+}
+
+pub fn print_query(query: &str, test_name: &'static str) {
+    let sql = sqlformat::format(query, &QueryParams::None, &FormatOptions::default());
+    println!("Test: {}", test_name);
+
+    println!("{}", sql);
 }
