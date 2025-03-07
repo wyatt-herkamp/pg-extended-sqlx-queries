@@ -24,6 +24,7 @@ pub struct SelectQueryBuilder<'args> {
     arguments: ArgumentHolder<'args>,
     limit: Option<i32>,
     offset: Option<i32>,
+    distinct: bool,
     order_by: Option<(DynColumn, SQLOrder)>,
 }
 
@@ -50,7 +51,12 @@ impl<'args> SelectQueryBuilder<'args> {
             limit: None,
             offset: None,
             order_by: None,
+            distinct: false,
         }
+    }
+    pub fn distinct(&mut self) -> &mut Self {
+        self.distinct = true;
+        self
     }
     pub fn with_columns<C>(table: &'args str, columns: impl Into<Vec<C>>) -> Self
     where
@@ -124,12 +130,13 @@ impl<'args> FormatSqlQuery for SelectQueryBuilder<'args> {
         }
 
         let concat_columns = columns.join(", ");
-
+        let distinct = if self.distinct { " DISTINCT " } else { " " };
         let mut sql = format!(
-            "SELECT {columns} FROM {table}",
+            "SELECT{distinct}{columns} FROM {table}",
             columns = concat_columns,
             table = self.table
         );
+
         for join in &self.joins {
             sql.push(' ');
             sql.push_str(&join.format_sql());
@@ -193,7 +200,6 @@ impl<'args> WhereableTool<'args> for SelectQueryBuilder<'args> {
 }
 #[cfg(test)]
 mod tests {
-
 
     use crate::{
         expr::Collate,
@@ -335,5 +341,14 @@ mod tests {
         );
 
         print_query(sql, "Select with Grouped");
+    }
+    #[test]
+    fn select_distinct() {
+        let mut select = SelectQueryBuilder::new(TestTable::table_name());
+        select.select_all().distinct();
+        let sql = select.format_sql_query();
+        assert_eq!(sql, "SELECT DISTINCT * FROM test_table");
+
+        print_query(sql, "select distinct");
     }
 }
