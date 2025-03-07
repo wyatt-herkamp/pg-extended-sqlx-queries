@@ -2,7 +2,7 @@ use builder::MathExprBuilderInner;
 
 use crate::traits::FormatSql;
 
-use super::{DynExpr, Expr, ExprType};
+use super::{Aliasable, DynExpr, Expr, ExprType};
 mod builder;
 mod expr;
 pub use expr::*;
@@ -16,12 +16,14 @@ impl<'args, L: ExprType<'args> + 'args, R: ExprType<'args> + 'args>
         Self(value)
     }
 }
+impl<'args, L: ExprType<'args> + 'args, R: ExprType<'args> + 'args> Aliasable<'args>
+    for MathExprBuilder<'args, L, R>
+{
+}
 impl<'args, L: ExprType<'args> + 'args, R: ExprType<'args> + 'args> MathExprBuilder<'args, L, R> {
     pub fn dyn_expression(self) -> MathExprBuilder<'args, DynExpr<'args>, DynExpr<'args>> {
         self.0.dyn_expression().into()
     }
-
-
 }
 impl<'args, L: ExprType<'args> + 'args, R: ExprType<'args> + 'args> ExprType<'args>
     for MathExprBuilder<'args, L, R>
