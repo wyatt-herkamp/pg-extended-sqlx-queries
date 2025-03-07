@@ -84,4 +84,19 @@ mod tests {
 
         println!("{}", sql);
     }
+    #[test]
+    pub fn age_times_two_is_50() {
+        let mut query = SelectExists::new(TestTable::table_name());
+        query.filter(TestTableColumn::Age.multiply(2).equals(50.value()));
+
+        let sql = query.format_sql_query();
+        assert_eq!(
+            sql,
+            "SELECT EXISTS (SELECT 1 FROM test_table  WHERE (test_table.age * $1) = $2)"
+        );
+
+        let sql = sqlformat::format(sql, &QueryParams::None, &FormatOptions::default());
+
+        println!("{}", sql);
+    }
 }

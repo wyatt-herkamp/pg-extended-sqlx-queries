@@ -1,7 +1,22 @@
 use std::borrow::Cow;
 
 use crate::prelude::*;
-
+macro_rules! wrap_in_function {
+    (
+        $(
+            $name:ident => $value:literal
+        ),*
+    ) => {
+        $(
+            fn $name(self) -> SqlFunctionBuilder<'args>
+            where
+                Self: Sized,
+            {
+                self.wrap_in_function($value)
+            }
+        )*
+    };
+}
 pub trait WrapInFunction<'args>: ExprType<'args> + 'args {
     fn wrap_in_function(
         self,
@@ -12,55 +27,24 @@ pub trait WrapInFunction<'args>: ExprType<'args> + 'args {
     {
         SqlFunctionBuilder::new(function_name).add_param(self)
     }
+    wrap_in_function!(
+        lower => "LOWER",
+        upper => "UPPER",
+        count => "COUNT",
+        sum => "SUM",
+        avg => "AVG",
+        array_agg => "ARRAY_AGG",
+        array => "ARRAY",
+        any => "ANY",
+        abs => "ABS",
+        ceil => "CEIL",
+        floor => "FLOOR",
+        ln => "LN",
+        log10 => "LOG10",
+        degrees => "DEGREES",
+        radians => "RADIANS"
+    );
 
-    fn lower(self) -> SqlFunctionBuilder<'args>
-    where
-        Self: Sized,
-    {
-        self.wrap_in_function("LOWER")
-    }
-    fn upper(self) -> SqlFunctionBuilder<'args>
-    where
-        Self: Sized,
-    {
-        self.wrap_in_function("UPPER")
-    }
-    fn count(self) -> SqlFunctionBuilder<'args>
-    where
-        Self: Sized,
-    {
-        self.wrap_in_function("COUNT")
-    }
-    fn sum(self) -> SqlFunctionBuilder<'args>
-    where
-        Self: Sized,
-    {
-        self.wrap_in_function("SUM")
-    }
-    fn avg(self) -> SqlFunctionBuilder<'args>
-    where
-        Self: Sized,
-    {
-        self.wrap_in_function("AVG")
-    }
-    fn array_agg(self) -> SqlFunctionBuilder<'args>
-    where
-        Self: Sized,
-    {
-        self.wrap_in_function("ARRAY_AGG")
-    }
-    fn array(self) -> SqlFunctionBuilder<'args>
-    where
-        Self: Sized,
-    {
-        self.wrap_in_function("ARRAY")
-    }
-    fn any(self) -> SqlFunctionBuilder<'args>
-    where
-        Self: Sized,
-    {
-        self.wrap_in_function("ANY")
-    }
     /// Calls Postgres EXTRACT function on the given expression.
     ///
     /// Reference: https://www.postgresql.org/docs/current/functions-datetime.html#FUNCTIONS-DATETIME-EXTRACT

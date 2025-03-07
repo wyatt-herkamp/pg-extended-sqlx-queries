@@ -9,6 +9,8 @@ mod function;
 pub use function::*;
 pub use value::*;
 mod keywords;
+mod math;
+pub use math::*;
 mod multi;
 pub use keywords::*;
 mod returning;
@@ -65,6 +67,7 @@ pub enum Expr {
     Select(SelectExpr),
     Alias(ExprAlias),
     Wildcard(Wildcard),
+    Math(Box<SQLMathExpr>),
     Multiple(MultipleExpr),
     Empty,
     Other(OtherSql),
@@ -89,20 +92,22 @@ macro_rules! from_expr {
             }
         )*
     };
+}
+macro_rules! from_box_expr {
     (
-        $(
-            Box<$type:ty> => $variant:ident
-        ),*
-    ) => {
+    $(
+        $type:ty => $variant:ident
+    ),*
+) => {
         $(
             impl From<Box<$type>> for Expr {
                 fn from(value: Box<$type>) -> Self {
-                    Expr::$variant(*value)
+                    Expr::$variant(value)
                 }
             }
             impl From<$type> for Expr {
                 fn from(value: $type) -> Self {
-                    Expr::$variant(value)
+                    Expr::$variant(Box::new(value))
                 }
             }
         )*
@@ -116,9 +121,13 @@ from_expr! {
     MultipleExpr => Multiple,
     OtherSql => Other,
     Keywords => Keywords
+
 }
 
-from_expr!(Box<SQLCondition> => Condition);
+from_box_expr!(
+   SQLCondition => Condition,
+    SQLMathExpr => Math
+);
 
 impl FormatSql for Expr {
     fn format_sql(&self) -> Cow<'_, str> {
@@ -132,6 +141,7 @@ impl FormatSql for Expr {
             Expr::Wildcard(all) => all.format_sql(),
             Expr::Multiple(multiple) => multiple.format_sql(),
             Expr::Empty => Cow::default(),
+            Expr::Math(math) => math.format_sql(),
             Expr::Other(other) => other.format_sql(),
             Expr::Keywords(keywords) => keywords.format_sql(),
         }
