@@ -2,8 +2,8 @@
 use super::{Expr, ExprType, WrapInFunction};
 use pg_extended_sqlx_queries_macros::value_expr_type;
 use sqlx::{
-    postgres::{PgHasArrayType, PgTypeInfo},
     Encode, Postgres, Type,
+    postgres::{PgHasArrayType, PgTypeInfo},
 };
 pub mod arguments;
 pub use arguments::*;
@@ -150,3 +150,9 @@ value_expr_type!(uuid::Uuid);
 
 #[cfg(feature = "json")]
 value_expr_type!(sqlx::types::Json<T>: where T: serde::Serialize + 'args);
+
+#[cfg(feature = "ipnetwork")]
+value_expr_type!(sqlx::types::ipnetwork::IpNetwork, core::net::IpAddr);
+
+#[cfg(feature = "mac_address")]
+value_expr_type!(mac_address::MacAddress);
