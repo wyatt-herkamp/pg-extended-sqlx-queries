@@ -1,5 +1,5 @@
 use crate::prelude::*;
-use std::borrow::Cow;
+use std::{borrow::Cow, fmt::Debug};
 
 use tracing::{debug, instrument};
 
@@ -8,6 +8,15 @@ pub struct DeleteQueryBuilder<'args> {
     where_comparisons: Vec<SQLCondition>,
     sql: Option<String>,
     arguments: ArgumentHolder<'args>,
+}
+impl Debug for DeleteQueryBuilder<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DeleteQueryBuilder")
+            .field("table", &self.table)
+            .field("where_comparisons", &self.where_comparisons)
+            .field("sql", &self.sql)
+            .finish()
+    }
 }
 impl<'args> DeleteQueryBuilder<'args> {
     pub fn new(table: &'args str) -> Self {
@@ -51,6 +60,7 @@ impl<'args> FormatSqlQuery for DeleteQueryBuilder<'args> {
         self.sql.as_ref().expect("SQL not set")
     }
 }
+impl<'args> QueryTool<'args> for DeleteQueryBuilder<'args> {}
 #[cfg(test)]
 mod tests {
     use super::*;
