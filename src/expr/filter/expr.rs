@@ -27,7 +27,10 @@ pub trait FilterExpr<'args>: ExprType<'args> {
         less_than_or_equals: LessThanOrEqualTo,
         greater_than: GreaterThan,
         greater_than_or_equals: GreaterThanOrEqualTo,
-        not_equals: NotEquals
+        not_equals: NotEquals,
+        array_contains: ArrayContains,
+        array_overlap: ArrayOverlap,
+        array_contained_by: ArrayContainedBy
     }
     fn is_not_null(self) -> FilterConditionBuilder<'args, Self, ()>
     where

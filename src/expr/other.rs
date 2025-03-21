@@ -29,6 +29,10 @@ pub enum SQLComparison {
     GreaterThanOrEqualTo,
     /// Less Than or Equals
     LessThanOrEqualTo,
+
+    ArrayContains,
+    ArrayContainedBy,
+    ArrayOverlap,
 }
 impl FormatSql for SQLComparison {
     fn format_sql(&self) -> Cow<'static, str> {
@@ -41,6 +45,9 @@ impl FormatSql for SQLComparison {
             Self::LessThan => Cow::Borrowed("<"),
             Self::GreaterThanOrEqualTo => Cow::Borrowed(">="),
             Self::LessThanOrEqualTo => Cow::Borrowed("<="),
+            Self::ArrayContains => Cow::Borrowed("@>"),
+            Self::ArrayContainedBy => Cow::Borrowed("<@"),
+            Self::ArrayOverlap => Cow::Borrowed("&&"),
         }
     }
 }
