@@ -58,6 +58,18 @@ pub trait PageParamsType {
         self.page_size() * self.page_index()
     }
 }
+impl<T> PageParamsType for &T
+where
+    T: PageParamsType,
+{
+    fn page_size(&self) -> i32 {
+        (*self).page_size()
+    }
+    fn page_number(&self) -> i32 {
+        (*self).page_number()
+    }
+}
+
 /// Parameters for pagination
 ///
 /// Includes the page size and the page number
@@ -67,7 +79,6 @@ pub trait PageParamsType {
 /// This is dependent on the request handler
 #[derive(Clone, Copy, PartialEq, Eq)]
 #[deprecated]
-
 pub struct PageParams {
     /// The number of items per page
     pub page_size: i32,
