@@ -68,6 +68,18 @@ where
     fn page_number(&self) -> i32 {
         (*self).page_number()
     }
+    fn number_of_pages(&self, total: i64) -> i32 {
+        (*self).number_of_pages(total)
+    }
+    fn limit(&self) -> i32 {
+        (*self).limit()
+    }
+    fn page_index(&self) -> i32 {
+        (*self).page_index()
+    }
+    fn offset(&self) -> i32 {
+        (*self).offset()
+    }
 }
 
 /// Parameters for pagination
