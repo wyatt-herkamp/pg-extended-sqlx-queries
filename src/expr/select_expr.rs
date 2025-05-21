@@ -1,8 +1,10 @@
 use std::borrow::Cow;
-
+mod join;
 use crate::prelude::ColumnType;
+use crate::select::{Join, JoinType};
 use crate::traits::{ExpressionWhereable, FormatSql, FormatWhere};
 use crate::{pagination::PaginationOwnedSupportingTool, prelude::DynColumn};
+pub use join::*;
 
 use super::{Aliasable, DynExpr, Expr, ExprType, FilterConditionBuilder, WrapInFunction};
 use super::{SQLCondition, SQLOrder, arguments::ArgumentHolder, concat_with_comma};
@@ -13,6 +15,7 @@ pub struct SelectExpr {
     where_comparisons: Vec<SQLCondition>,
     limit: Option<i64>,
     order_by: Option<(DynColumn, SQLOrder)>,
+    joins: Vec<Join>,
 }
 impl FormatWhere for SelectExpr {
     fn get_conditions(&self) -> &[SQLCondition] {
@@ -21,7 +24,12 @@ impl FormatWhere for SelectExpr {
 }
 impl FormatSql for SelectExpr {
     fn format_sql(&self) -> Cow<'_, str> {
-        let concat_columns = concat_with_comma(&self.select);
+        let mut columns: Vec<_> = self.select.iter().map(|item| item.format_sql()).collect();
+        for join in &self.joins {
+            columns.extend(join.columns_to_select.iter().map(|expr| expr.format_sql()));
+        }
+
+        let concat_columns = columns.join(", ");
         // Wrap the {columns} in parentheses because they are only allowed to return 1 column
 
         let mut sql = if self.select.len() == 1 {
@@ -37,6 +45,10 @@ impl FormatSql for SelectExpr {
                 table = self.table
             )
         };
+        for join in &self.joins {
+            sql.push(' ');
+            sql.push_str(&join.format_sql());
+        }
         if !self.where_comparisons.is_empty() {
             let where_sql = self.format_where();
             sql.push_str(" WHERE ");
@@ -65,6 +77,7 @@ pub struct SelectExprBuilder<'args> {
     limit: Option<i64>,
     offset: Option<i64>,
     order_by: Option<(DynColumn, SQLOrder)>,
+    joins: Vec<JoinExprWithOn<'args>>,
 }
 impl<'args> ExpressionWhereable<'args> for SelectExprBuilder<'args> {
     fn push_where_comparison<L: ExprType<'args> + 'args, R: ExprType<'args> + 'args>(
@@ -95,6 +108,7 @@ impl<'args> SelectExprBuilder<'args> {
             limit: None,
             offset: None,
             order_by: None,
+            joins: Vec::new(),
         }
     }
     pub fn column<C>(mut self, column: C) -> Self
@@ -116,6 +130,18 @@ impl<'args> SelectExprBuilder<'args> {
         C: ColumnType + 'static,
     {
         self.order_by = Some((column.dyn_column(), order));
+        self
+    }
+
+    pub fn join<F>(mut self, table: &'static str, join_type: JoinType, join: F) -> Self
+    where
+        F: FnOnce(join::JoinExprBuilder<'args>) -> join::JoinExprWithOn<'args>,
+    {
+        let builder = join::JoinExprBuilder::new(table, join_type);
+        let join = join(builder);
+
+        self.joins.push(join);
+
         self
     }
 }
@@ -141,12 +167,18 @@ impl<'args> ExprType<'args> for SelectExprBuilder<'args> {
             .into_iter()
             .map(|expr| expr.process_unboxed(args))
             .collect();
+        let joins = self
+            .joins
+            .into_iter()
+            .map(|join| join.process_args(args))
+            .collect();
         let select = SelectExpr {
             table: self.table,
             select,
             where_comparisons,
             limit: self.limit,
             order_by: self.order_by,
+            joins,
         };
 
         Expr::Select(select)
@@ -160,7 +192,7 @@ mod tests {
         fake::FakeQuery,
         pagination::PaginationOwnedSupportingTool,
         prelude::*,
-        testing::{TestTable, TestTableColumn},
+        testing::{AnotherTable, AnotherTableColumn, TestTable, TestTableColumn},
     };
 
     use super::SelectExprBuilder;
@@ -181,6 +213,29 @@ mod tests {
         assert_eq!(
             expr.format_sql().into_owned(),
             "ARRAY((SELECT (test_table.age, NOW()) FROM test_table LIMIT 20)) AS test_alias"
+        );
+    }
+
+    #[test]
+    pub fn basic_select_with_join() {
+        let sub_select = SelectExprBuilder::new(TestTable::table_name())
+            .column(TestTableColumn::Age)
+            .select_expr(SqlFunctionBuilder::now())
+            .join(AnotherTable::table_name(), JoinType::Inner, |join| {
+                join.select(AnotherTableColumn::Age)
+                    .on(TestTableColumn::Id.equals(AnotherTableColumn::Id))
+            })
+            .limit(20)
+            .array()
+            .alias("test_alias");
+
+        // Code for faking the query
+        let mut parent = FakeQuery::default();
+        let expr = sub_select.process_unboxed(&mut parent.arguments);
+
+        assert_eq!(
+            expr.format_sql().into_owned(),
+            "ARRAY((SELECT (test_table.age, NOW(), another_table.age) FROM test_table INNER JOIN another_table ON test_table.id = another_table.id LIMIT 20)) AS test_alias"
         );
     }
 }

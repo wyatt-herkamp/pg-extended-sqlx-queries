@@ -351,4 +351,22 @@ mod tests {
 
         print_query(sql, "select distinct");
     }
+
+    #[test]
+    fn select_with_cast() {
+        let mut select = SelectQueryBuilder::new(TestTable::table_name());
+        select.select_all().filter(
+            TestTableColumn::UpdatedAt
+                .as_date()
+                .equals("2023-10-01".value()),
+        );
+
+        let sql = select.format_sql_query();
+        assert_eq!(
+            sql,
+            "SELECT * FROM test_table WHERE test_table.updated_at::DATE = $1"
+        );
+
+        print_query(sql, "select_with_cast");
+    }
 }

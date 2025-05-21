@@ -47,7 +47,7 @@ impl FormatSql for OnCondition {
         Cow::Owned(sql)
     }
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Join {
     pub join_type: JoinType,
     pub table: &'static str,
