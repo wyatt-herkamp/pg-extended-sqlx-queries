@@ -16,6 +16,7 @@ pub struct SelectExpr {
     limit: Option<i64>,
     order_by: Option<(DynColumn, SQLOrder)>,
     joins: Vec<Join>,
+    distinct: bool,
 }
 impl FormatWhere for SelectExpr {
     fn get_conditions(&self) -> &[SQLCondition] {
@@ -31,16 +32,17 @@ impl FormatSql for SelectExpr {
 
         let concat_columns = columns.join(", ");
         // Wrap the {columns} in parentheses because they are only allowed to return 1 column
+        let distinct = if self.distinct { " DISTINCT " } else { " " };
 
         let mut sql = if self.select.len() == 1 {
             format!(
-                "(SELECT {columns} FROM {table}",
+                "(SELECT{distinct}{columns} FROM {table}",
                 columns = concat_columns,
                 table = self.table
             )
         } else {
             format!(
-                "(SELECT ({columns}) FROM {table}",
+                "(SELECT{distinct}({columns}) FROM {table}",
                 columns = concat_columns,
                 table = self.table
             )
@@ -78,6 +80,7 @@ pub struct SelectExprBuilder<'args> {
     offset: Option<i64>,
     order_by: Option<(DynColumn, SQLOrder)>,
     joins: Vec<JoinExprWithOn<'args>>,
+    distinct: bool,
 }
 impl<'args> ExpressionWhereable<'args> for SelectExprBuilder<'args> {
     fn push_where_comparison<L: ExprType<'args> + 'args, R: ExprType<'args> + 'args>(
@@ -109,6 +112,7 @@ impl<'args> SelectExprBuilder<'args> {
             offset: None,
             order_by: None,
             joins: Vec::new(),
+            distinct: false,
         }
     }
     pub fn column<C>(mut self, column: C) -> Self
@@ -116,6 +120,10 @@ impl<'args> SelectExprBuilder<'args> {
         C: ColumnType + 'static,
     {
         self.select.push(DynExpr::new(column.dyn_column()));
+        self
+    }
+    pub fn distinct(mut self) -> Self {
+        self.distinct = true;
         self
     }
     pub fn select_expr<E>(mut self, expr: E) -> Self
@@ -179,6 +187,7 @@ impl<'args> ExprType<'args> for SelectExprBuilder<'args> {
             limit: self.limit,
             order_by: self.order_by,
             joins,
+            distinct: self.distinct,
         };
 
         Expr::Select(select)
@@ -213,6 +222,25 @@ mod tests {
         assert_eq!(
             expr.format_sql().into_owned(),
             "ARRAY((SELECT (test_table.age, NOW()) FROM test_table LIMIT 20)) AS test_alias"
+        );
+    }
+    #[test]
+    pub fn select_distinct() {
+        let sub_select = SelectExprBuilder::new(TestTable::table_name())
+            .distinct()
+            .column(TestTableColumn::Age)
+            .select_expr(SqlFunctionBuilder::now())
+            .limit(20)
+            .array()
+            .alias("test_alias");
+
+        // Code for faking the query
+        let mut parent = FakeQuery::default();
+        let expr = sub_select.process_unboxed(&mut parent.arguments);
+
+        assert_eq!(
+            expr.format_sql().into_owned(),
+            "ARRAY((SELECT DISTINCT (test_table.age, NOW()) FROM test_table LIMIT 20)) AS test_alias"
         );
     }
 
