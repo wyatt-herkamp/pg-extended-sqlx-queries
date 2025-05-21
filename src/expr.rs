@@ -21,7 +21,9 @@ use crate::{table_layout::*, traits::FormatSql};
 pub use conflict::*;
 pub use multi::*;
 pub use other::*;
+mod cast;
 mod collate;
+pub use cast::*;
 pub use collate::*;
 pub use select_expr::*;
 pub struct DynExpr<'args>(Box<dyn ExprType<'args> + 'args>);
@@ -72,6 +74,7 @@ pub enum Expr {
     Empty,
     Other(OtherSql),
     Keywords(Keywords),
+    Cast(Cast),
 }
 impl From<DynColumn> for Expr {
     fn from(column: DynColumn) -> Self {
@@ -144,6 +147,7 @@ impl FormatSql for Expr {
             Expr::Math(math) => math.format_sql(),
             Expr::Other(other) => other.format_sql(),
             Expr::Keywords(keywords) => keywords.format_sql(),
+            Expr::Cast(cast) => cast.format_sql(),
         }
     }
 }

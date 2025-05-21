@@ -44,6 +44,11 @@ pub fn expand(input: DeriveInput) -> Result<TokenStream> {
             .collect::<Result<Vec<_>>>()?,
         _ => return Err(syn::Error::new_spanned(ident, "expected named fields")),
     };
+    let primary_key = fields
+        .iter()
+        .find(|field| field.primary_key)
+        .map(|field| has_primary_key(field, &ident, &column_enum_name))
+        .unwrap_or_default();
     let enum_variants: Vec<_> = fields
         .iter()
         .map(|field| field.enum_variant_def())
@@ -135,6 +140,7 @@ pub fn expand(input: DeriveInput) -> Result<TokenStream> {
                     ]
                 }
             }
+            #primary_key
         };
         #expr_type
 
@@ -142,7 +148,20 @@ pub fn expand(input: DeriveInput) -> Result<TokenStream> {
 
     Ok(result)
 }
-
+fn has_primary_key(
+    field: &ColumnField,
+    table_type: &syn::Ident,
+    column_enum_name: &syn::Ident,
+) -> TokenStream {
+    let column_name = &field.ident_as_upper_camel;
+    quote! {
+        impl HasPrimaryKey for #table_type {
+            fn primary_key() -> Self::Columns {
+                #column_enum_name::#column_name
+            }
+        }
+    }
+}
 fn expr_type(implement: bool, column_enum_name: &syn::Ident) -> TokenStream {
     if !implement {
         return TokenStream::default();

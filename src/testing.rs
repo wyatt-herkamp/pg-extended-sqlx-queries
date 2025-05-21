@@ -5,10 +5,11 @@ use std::fmt::Debug;
 use chrono::{DateTime, FixedOffset};
 use sqlformat::{FormatOptions, QueryParams};
 
-use crate::prelude::*;
+use crate::{prelude::*, table_layout::Relation};
 #[derive(Debug, Clone, TableType)]
 #[table(name = "test_table")]
 pub struct TestTable {
+    #[column(primary_key)]
     pub id: i32,
     pub first_name: String,
     pub last_name: String,
@@ -23,6 +24,7 @@ pub struct TestTable {
 #[derive(Debug, Clone, TableType)]
 #[table(name = "another_table")]
 pub struct AnotherTable {
+    #[column(primary_key)]
     pub id: i32,
     pub email: String,
     pub phone: String,
@@ -30,7 +32,14 @@ pub struct AnotherTable {
     pub updated_at: DateTime<FixedOffset>,
     pub created_at: DateTime<FixedOffset>,
 }
-
+impl Relation<AnotherTable> for TestTable {
+    fn from_column() -> Self::Columns {
+        TestTableColumn::AnotherTableId
+    }
+    fn to_column() -> <AnotherTable as TableType>::Columns {
+        AnotherTableColumn::Id
+    }
+}
 #[cfg(test)]
 mod tests {
     use crate::{ColumnType, testing::TestTableColumn};

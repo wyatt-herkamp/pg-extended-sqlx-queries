@@ -1,8 +1,8 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{
-    parse::{Parse, ParseStream},
     Field, Ident, LitBool, LitStr, Result,
+    parse::{Parse, ParseStream},
 };
 
 use crate::utils::ident_to_upper_camel;
@@ -20,12 +20,15 @@ pub struct ColumnAttribute {
     pub enum_variant: Option<Ident>,
     /// Skips for whatever reason
     pub skip: bool,
+
+    pub primary_key: bool,
 }
 impl Parse for ColumnAttribute {
     fn parse(input: ParseStream) -> Result<Self> {
         let mut column_name: Option<LitStr> = None;
         let mut enum_variant: Option<Ident> = None;
         let mut skip = false;
+        let mut primary_key = false;
         while !input.is_empty() {
             let lookahead = input.lookahead1();
             if lookahead.peek(keywords::name) {
@@ -39,11 +42,15 @@ impl Parse for ColumnAttribute {
             } else if lookahead.peek(keywords::skip) {
                 let _: keywords::skip = input.parse()?;
                 skip = true;
+            } else if lookahead.peek(keywords::primary_key) {
+                let _: keywords::primary_key = input.parse()?;
+                primary_key = true;
             } else {
                 return Err(lookahead.error());
             }
         }
         Ok(Self {
+            primary_key,
             column_name,
             enum_variant,
             skip,
@@ -57,6 +64,7 @@ pub struct ColumnField {
     pub ident: syn::Ident,
     pub name: syn::LitStr,
     pub ident_as_upper_camel: syn::Ident,
+    pub primary_key: bool,
 }
 
 impl ColumnField {
@@ -96,6 +104,7 @@ impl ColumnField {
             ident,
             name,
             ident_as_upper_camel,
+            primary_key: column_attr.primary_key,
         };
         Ok(Some(result))
     }

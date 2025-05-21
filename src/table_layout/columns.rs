@@ -1,6 +1,6 @@
 use std::{borrow::Cow, fmt::Debug};
 
-use crate::expr::{Aliasable, ArgumentHolder, Expr, ExprType, WrapInFunction};
+use crate::expr::{Aliasable, ArgumentHolder, CastableExprType, Expr, ExprType, WrapInFunction};
 
 #[derive(Debug)]
 pub struct DynColumn(Box<dyn ColumnType + Send + Sync>);
@@ -91,6 +91,7 @@ pub trait AllColumns {
 }
 impl<'args, C> Aliasable<'args> for C where C: ColumnType + ExprType<'args> + 'static {}
 impl<'args, C> WrapInFunction<'args> for C where C: ColumnType + ExprType<'args> + 'static {}
+impl<'args, C> CastableExprType<'args> for C where C: ColumnType + ExprType<'args> + 'static {}
 
 pub fn concat_columns<'column, I, C>(columns: I, prefix: Option<&str>) -> String
 where

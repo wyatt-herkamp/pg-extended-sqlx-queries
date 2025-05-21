@@ -4,7 +4,7 @@ pub(crate) mod table_type;
 pub(crate) mod utils;
 pub(crate) mod value_expr_type;
 /// Derive macro for generating table types
-/// ```rust,no_compile
+/// ```rust,ignore
 /// use pg_extended_sqlx_queries_macros::TableType;
 /// #[derive(TableType)]
 /// #[table(name = "users")]

@@ -11,4 +11,5 @@ pub mod keywords {
     syn::custom_keyword!(column_variant_name);
     syn::custom_keyword!(column_enum_name);
     syn::custom_keyword!(impl_expr);
+    syn::custom_keyword!(primary_key);
 }
