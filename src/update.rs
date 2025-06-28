@@ -134,7 +134,7 @@ mod tests {
 
         let sql = sqlformat::format(sql, &QueryParams::None, &FormatOptions::default());
 
-        println!("{}", sql);
+        println!("{sql}");
     }
 
     #[test]
@@ -153,7 +153,7 @@ mod tests {
         );
         let sql = sqlformat::format(sql, &QueryParams::None, &FormatOptions::default());
 
-        println!("{}", sql);
+        println!("{sql}");
     }
 
     #[test]
@@ -172,6 +172,6 @@ mod tests {
         );
         let sql = sqlformat::format(sql, &QueryParams::None, &FormatOptions::default());
 
-        println!("{}", sql);
+        println!("{sql}");
     }
 }

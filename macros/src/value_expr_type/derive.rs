@@ -1,6 +1,6 @@
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{parse_quote, DeriveInput, Result};
+use syn::{DeriveInput, Result, parse_quote};
 
 use super::ValueExprType;
 pub fn expand(input: DeriveInput) -> Result<TokenStream> {

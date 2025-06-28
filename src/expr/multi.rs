@@ -11,6 +11,12 @@ pub struct MultipleExprBuilder<'args> {
     phantom: std::marker::PhantomData<&'args ()>,
 }
 impl<'args> Aliasable<'args> for MultipleExprBuilder<'args> {}
+impl<'args> Default for MultipleExprBuilder<'args> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<'args> MultipleExprBuilder<'args> {
     pub fn new() -> Self {
         Self {
@@ -45,14 +51,14 @@ impl<'args> MultipleExprBuilder<'args> {
         args: &mut ArgumentHolder<'args>,
         seperator: impl Into<Cow<'static, str>>,
     ) -> MultipleExpr {
-        let exprs = MultipleExpr::with_separator(
+        
+        MultipleExpr::with_separator(
             self.functions
                 .into_iter()
                 .map(|function| function.process_unboxed(args))
                 .collect(),
             seperator,
-        );
-        exprs
+        )
     }
 }
 impl<'args> MultipleExprType<'args> for MultipleExprBuilder<'args> {

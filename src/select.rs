@@ -149,7 +149,7 @@ impl<'args> FormatSqlQuery for SelectQueryBuilder<'args> {
 
         if let Some((column, order)) = &self.order_by {
             sql.push_str(" ORDER BY ");
-            sql.push_str(column.column_name());
+            sql.push_str(&column.full_name());
             sql.push(' ');
             sql.push_str(&order.format_sql());
         }

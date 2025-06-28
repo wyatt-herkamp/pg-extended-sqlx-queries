@@ -7,7 +7,7 @@ use crate::{pagination::PaginationOwnedSupportingTool, prelude::DynColumn};
 pub use join::*;
 
 use super::{Aliasable, DynExpr, Expr, ExprType, FilterConditionBuilder, WrapInFunction};
-use super::{SQLCondition, SQLOrder, arguments::ArgumentHolder, concat_with_comma};
+use super::{SQLCondition, SQLOrder, arguments::ArgumentHolder};
 #[derive(Debug, PartialEq)]
 pub struct SelectExpr {
     table: &'static str,

@@ -10,17 +10,10 @@ use crate::{
 };
 
 /// A utility struct for testing different SQL Queries
+#[derive(Default)]
 pub struct FakeQuery<'args> {
     pub arguments: ArgumentHolder<'args>,
     pub conditions: Vec<SQLCondition>,
-}
-impl Default for FakeQuery<'_> {
-    fn default() -> Self {
-        Self {
-            arguments: Default::default(),
-            conditions: Vec::new(),
-        }
-    }
 }
 impl<'args> HasArguments<'args> for FakeQuery<'args> {
     fn holder(&mut self) -> &mut ArgumentHolder<'args> {

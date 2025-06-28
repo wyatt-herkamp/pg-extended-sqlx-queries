@@ -10,7 +10,7 @@ pub enum Collate {
 }
 impl FormatSql for Collate {
     fn format_sql(&self) -> Cow<'_, str> {
-        Cow::Owned(format!(r#"COLLATE "{}""#, self))
+        Cow::Owned(format!(r#"COLLATE "{self}""#))
     }
 }
 impl From<&'static str> for Collate {
@@ -22,7 +22,7 @@ impl Display for Collate {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::TrTrxIcu => write!(f, "tr-TR-x-icu"),
-            Self::Other(s) => write!(f, "{}", s),
+            Self::Other(s) => write!(f, "{s}"),
         }
     }
 }

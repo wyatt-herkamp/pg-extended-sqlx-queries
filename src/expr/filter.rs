@@ -27,7 +27,7 @@ impl<'args, L: ExprType<'args> + 'args, R: ExprType<'args> + 'args>
         FilterConditionBuilderInner::Then {
             left: self,
             and_or: AndOr::And,
-            right: right,
+            right,
         }
         .into()
     }
@@ -38,7 +38,7 @@ impl<'args, L: ExprType<'args> + 'args, R: ExprType<'args> + 'args>
         FilterConditionBuilderInner::Then {
             left: self,
             and_or: AndOr::Or,
-            right: right,
+            right,
         }
         .into()
     }

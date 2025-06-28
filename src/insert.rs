@@ -145,7 +145,7 @@ mod tests {
             sql,
             "INSERT INTO test_table (last_name, first_name, phone) VALUES ($1, $2, $3);"
         );
-        println!("{}", sql);
+        println!("{sql}");
     }
     #[test]
     pub fn insert_with_expr() {
@@ -160,7 +160,7 @@ mod tests {
             sql,
             "INSERT INTO test_table (last_name, first_name, created_at) VALUES ($1, $2, NOW());"
         );
-        println!("{}", sql);
+        println!("{sql}");
     }
     #[test]
     pub fn insert_sub_query() {
@@ -181,7 +181,7 @@ mod tests {
             "INSERT INTO test_table (last_name, first_name, phone) VALUES ($1, $2, (SELECT another_table.phone FROM another_table WHERE another_table.id = $3));"
         );
         let formatted = sqlformat::format(sql, &QueryParams::default(), &Default::default());
-        println!("{}", formatted);
+        println!("{formatted}");
     }
 
     #[test]
@@ -197,7 +197,7 @@ mod tests {
             sql,
             "INSERT INTO test_table (last_name, first_name) VALUES ($1, $2) ON CONFLICT (last_name) DO NOTHING;"
         );
-        println!("{}", sql);
+        println!("{sql}");
     }
 
     #[test]
@@ -216,6 +216,6 @@ mod tests {
             sql,
             "INSERT INTO test_table (last_name, first_name) VALUES ($1, $2) ON CONFLICT (last_name) DO UPDATE SET first_name = EXCLUDED.first_name, phone = EXCLUDED.phone;"
         );
-        println!("{}", sql);
+        println!("{sql}");
     }
 }

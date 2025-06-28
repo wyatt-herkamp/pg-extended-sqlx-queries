@@ -52,9 +52,9 @@ mod tests {
 
 pub fn print_query(query: &str, test_name: &'static str) {
     let sql = sqlformat::format(query, &QueryParams::None, &FormatOptions::default());
-    println!("Test: {}", test_name);
+    println!("Test: {test_name}");
 
-    println!("{}", sql);
+    println!("{sql}");
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]

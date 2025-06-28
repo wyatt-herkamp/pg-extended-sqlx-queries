@@ -1,6 +1,6 @@
 use syn::{
-    parse::{Parse, ParseStream},
     LitStr, Result,
+    parse::{Parse, ParseStream},
 };
 
 use crate::utils::keywords;

@@ -82,7 +82,7 @@ mod tests {
 
         let sql = sqlformat::format(sql, &QueryParams::None, &FormatOptions::default());
 
-        println!("{}", sql);
+        println!("{sql}");
     }
     #[test]
     pub fn age_times_two_is_50() {
@@ -97,6 +97,6 @@ mod tests {
 
         let sql = sqlformat::format(sql, &QueryParams::None, &FormatOptions::default());
 
-        println!("{}", sql);
+        println!("{sql}");
     }
 }

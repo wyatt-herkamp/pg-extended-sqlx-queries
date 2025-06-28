@@ -50,8 +50,8 @@ pub trait FormatSqlQuery {
         use sqlformat::{FormatOptions, QueryParams};
 
         let sql = self.format_sql_query();
-        let sql = sqlformat::format(sql, &QueryParams::None, &FormatOptions::default());
-        sql
+        
+        sqlformat::format(sql, &QueryParams::None, &FormatOptions::default())
     }
 }
 /// A base Query TOol type that can be used to build queries.
@@ -128,7 +128,7 @@ pub trait WhereableTool<'args>: HasArguments<'args> + Sized {
         &mut self,
         filter: FilterConditionBuilder<'args, L, R>,
     ) -> &mut Self {
-        let condition = filter.process_inner(&mut self.holder());
+        let condition = filter.process_inner(self.holder());
 
         self.push_where_comparison(condition);
 

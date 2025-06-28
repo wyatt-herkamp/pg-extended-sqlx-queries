@@ -36,7 +36,7 @@ pub struct OnCondition {
 impl FormatSql for OnCondition {
     fn format_sql(&self) -> std::borrow::Cow<'_, str> {
         let mut sql = self.left.format_sql().into_owned();
-        sql.push_str(" ");
+        sql.push(' ');
         sql.push_str(&self.value.format_sql());
         if let Some((and_or, then)) = &self.then {
             sql.push(' ');
@@ -91,7 +91,7 @@ where
     where
         E: ExprType<'args> + 'args,
     {
-        let expr = expr.process_unboxed(&mut self.args.holder());
+        let expr = expr.process_unboxed(self.args.holder());
         self.select.push(expr);
         self
     }
@@ -101,7 +101,7 @@ where
     {
         let expr: Vec<_> = columns
             .into_iter()
-            .map(|expr| expr.process_unboxed(&mut self.args.holder()))
+            .map(|expr| expr.process_unboxed(self.args.holder()))
             .collect();
 
         self.select.extend(expr);
@@ -111,7 +111,7 @@ where
         self,
         condition: FilterConditionBuilder<'args, L, R>,
     ) -> Join {
-        let on = condition.process_inner(&mut self.args.holder());
+        let on = condition.process_inner(self.args.holder());
         Join {
             join_type: self.join_type,
             table: self.table,

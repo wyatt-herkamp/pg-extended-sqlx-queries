@@ -19,7 +19,7 @@ impl FormatSql for Returning {
             Self::All => "RETURNING *".into(),
             Self::Columns(columns) => {
                 let columns = concat_columns_no_table_name(columns);
-                format!("RETURNING {}", columns).into()
+                format!("RETURNING {columns}").into()
             }
         }
     }

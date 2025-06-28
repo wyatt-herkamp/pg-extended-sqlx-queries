@@ -121,7 +121,7 @@ impl Wildcard {
 impl FormatSql for Wildcard {
     fn format_sql(&self) -> Cow<'static, str> {
         match &self.0 {
-            Some(s) => Cow::Owned(format!("{}.*", s)),
+            Some(s) => Cow::Owned(format!("{s}.*")),
             None => Cow::Borrowed("*"),
         }
     }

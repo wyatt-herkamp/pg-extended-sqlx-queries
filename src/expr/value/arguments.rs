@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use sqlx::{postgres::PgArguments, Arguments, Database, Postgres};
+use sqlx::{Arguments, Database, Postgres, postgres::PgArguments};
 
 use crate::traits::FormatSql;
 

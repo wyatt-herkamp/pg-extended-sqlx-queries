@@ -93,7 +93,7 @@ impl<'args> ExprType<'args> for SqlFunctionBuilder<'args> {
 
         let function = SqlFunction {
             function_name: self.function_name,
-            params: params,
+            params,
         };
         Expr::Function(function)
     }

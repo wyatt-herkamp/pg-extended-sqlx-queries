@@ -1,5 +1,5 @@
 use chrono::{DateTime, FixedOffset};
-use pg_extended_sqlx_queries::{prelude::*, ValueExprType};
+use pg_extended_sqlx_queries::{ValueExprType, prelude::*};
 use sqlx::prelude::Type;
 
 #[derive(Debug, Clone, TableType)]

@@ -84,6 +84,6 @@ mod tests {
 
         let sql = sqlformat::format(sql, &QueryParams::None, &FormatOptions::default());
 
-        println!("{}", sql);
+        println!("{sql}");
     }
 }

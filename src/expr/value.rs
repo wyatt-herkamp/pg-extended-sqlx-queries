@@ -44,7 +44,7 @@ impl<'args> DynEncode<'args> {
         let type_info = value.produces().unwrap_or_else(T::type_info);
         Self {
             value: Box::new(value),
-            type_info: type_info,
+            type_info,
         }
     }
 }

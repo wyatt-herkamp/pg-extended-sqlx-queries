@@ -63,7 +63,7 @@ impl FormatSql for ConflictAction {
                     .map(|column| column.format_sql())
                     .collect::<Vec<_>>()
                     .join(", ");
-                format!("DO UPDATE SET {}", columns).into()
+                format!("DO UPDATE SET {columns}").into()
             }
         }
     }
@@ -99,9 +99,9 @@ impl FormatSql for ConflictTarget {
                     .map(|column| column.column_name())
                     .collect::<Vec<_>>()
                     .join(", ");
-                format!("({columns})", columns = columns).into()
+                format!("({columns})").into()
             }
-            Self::Constraint(constraint) => format!("ON CONSTRAINT {}", constraint).into(),
+            Self::Constraint(constraint) => format!("ON CONSTRAINT {constraint}").into(),
         }
     }
 }

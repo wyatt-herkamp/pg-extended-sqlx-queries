@@ -157,6 +157,6 @@ mod tests {
             &QueryParams::default(),
             &Default::default(),
         );
-        println!("{}", formatted);
+        println!("{formatted}");
     }
 }
