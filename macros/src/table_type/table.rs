@@ -24,6 +24,6 @@ impl Parse for TableAttr {
         }
         let name =
             table_name.ok_or_else(|| syn::Error::new(input.span(), "table name is required"))?;
-        Ok(Self { name: name })
+        Ok(Self { name })
     }
 }

@@ -51,7 +51,6 @@ impl<'args> MultipleExprBuilder<'args> {
         args: &mut ArgumentHolder<'args>,
         seperator: impl Into<Cow<'static, str>>,
     ) -> MultipleExpr {
-        
         MultipleExpr::with_separator(
             self.functions
                 .into_iter()

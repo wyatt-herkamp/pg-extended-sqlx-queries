@@ -114,7 +114,7 @@ impl<'args> ExprType<'args> for Wildcard {
     }
 }
 impl Wildcard {
-    pub fn new<'args>() -> Wildcard {
+    pub fn new() -> Wildcard {
         Wildcard(None)
     }
 }

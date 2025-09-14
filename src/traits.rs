@@ -50,7 +50,7 @@ pub trait FormatSqlQuery {
         use sqlformat::{FormatOptions, QueryParams};
 
         let sql = self.format_sql_query();
-        
+
         sqlformat::format(sql, &QueryParams::None, &FormatOptions::default())
     }
 }

@@ -181,7 +181,7 @@ impl Parse for ColumnTypeAttribute {
             }
         }
         Ok(Self {
-            impl_expr: impl_expr.map_or(true, |lit| lit.value),
+            impl_expr: impl_expr.is_none_or(|lit| lit.value),
             enum_ident,
         })
     }

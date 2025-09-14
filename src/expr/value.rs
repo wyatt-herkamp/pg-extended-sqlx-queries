@@ -3,7 +3,13 @@ use super::{Expr, ExprType, WrapInFunction};
 use pg_extended_sqlx_queries_macros::value_expr_type;
 use sqlx::{
     Encode, Postgres, Type,
-    postgres::{PgHasArrayType, PgTypeInfo},
+    postgres::{
+        PgHasArrayType, PgTypeInfo,
+        types::{
+            Oid, PgBox, PgCiText, PgCircle, PgHstore, PgInterval, PgLQuery, PgLSeg, PgLTree,
+            PgLine, PgMoney, PgPath, PgPoint, PgPolygon,
+        },
+    },
 };
 pub mod arguments;
 pub use arguments::*;
@@ -139,6 +145,12 @@ value_expr_type!(
     Vec<u8>,
     &'args str,
     &'args [u8]
+);
+
+// Postgres Specific types
+value_expr_type!(
+    Oid, PgBox, PgCiText, PgCircle, PgHstore, PgInterval, PgLQuery, PgLSeg, PgLTree, PgLine,
+    PgMoney, PgPath, PgPoint, PgPolygon
 );
 #[cfg(feature = "chrono")]
 value_expr_type!(chrono::NaiveDateTime, chrono::NaiveTime, chrono::NaiveDate,);

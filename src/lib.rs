@@ -1,3 +1,5 @@
+#![allow(clippy::wrong_self_convention)]
+
 pub mod delete;
 pub mod expr;
 #[doc(hidden)]

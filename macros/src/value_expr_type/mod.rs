@@ -23,11 +23,8 @@ impl ToTokens for ValueExprType {
         let impl_part = if let Some(where_clause) = &self.where_clause {
             let mut generic_names = Vec::new();
             for predicate in &where_clause.predicates {
-                match predicate {
-                    syn::WherePredicate::Type(t) => {
-                        generic_names.push(t.bounded_ty.clone());
-                    }
-                    _ => {}
+                if let syn::WherePredicate::Type(t) = predicate {
+                    generic_names.push(t.bounded_ty.clone());
                 }
             }
             quote! {
@@ -45,7 +42,7 @@ impl ToTokens for ValueExprType {
                 let where_clause = where_clause.clone();
                 quote! { #where_clause }
             })
-            .unwrap_or(quote! {});
+            .unwrap_or_default();
         let type_to_implement = &self.type_to_implement;
         let base_type = quote! { #type_to_implement };
         let ref_type = quote! { &'args #type_to_implement };

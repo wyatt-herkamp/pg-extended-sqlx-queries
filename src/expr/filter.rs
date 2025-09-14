@@ -46,6 +46,7 @@ impl<'args, L: ExprType<'args> + 'args, R: ExprType<'args> + 'args>
     pub fn grouped(self) -> FilterConditionBuilder<'args, Self, ()> {
         FilterConditionBuilderInner::Grouped(self).into()
     }
+    #[allow(clippy::should_implement_trait)]
     pub fn not(self) -> FilterConditionBuilder<'args, Self, ()> {
         FilterConditionBuilderInner::Not(self).into()
     }
